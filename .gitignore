@@ -99,6 +99,7 @@ ENV/
 .mypy_cache/
 
 /*.exe
+/*.html
 /o2_check.py
 /o2_devel.py
 /o2_test.py

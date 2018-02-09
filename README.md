@@ -1,7 +1,7 @@
 # o2_scrap
 
 o2_scrap is a python library to access the web portal of Telefonica O2 Germany to fetch 
-- mobile data-usage of the phone numbers under a specifc contract
+- mobile data-usage of the phone numbers under a specific contract
 - the mobile plan details
 - the last 6 bills
 

@@ -85,7 +85,7 @@ class O2mobile(object):
     """ class to fetch information from mobile accounts """
 
     base_url = 'https://www.o2online.de'
-    
+
     def auth(self, driver, user, pwd):
         """ authenticates towards an o2 portal by using a user password combination
 
@@ -125,7 +125,7 @@ class O2mobile(object):
 
             args:
                 driver - selenium driver object
-                
+
             returns:
                 bill_list - list of bills
         """
@@ -139,11 +139,11 @@ class O2mobile(object):
                 tmp_dict['price'] = bill.find('div', attrs={'class': 'price-single price-single-lg'}).text.strip()
                 tmp_dict['text'] = bill.find('div', attrs={'class': 'text'}).text.strip()
                 tmp_dict['download'] = self.base_url + '/ecare' + bill.find('a')['href'].lstrip('.')
-        
+
                 bill_list.append(tmp_dict)
-        
-        return(bill_list)
-        
+
+        return bill_list
+
     def get_numbers(self, driver):
         """ get phone numbers belonging to the contract-choice-link
 
@@ -160,7 +160,7 @@ class O2mobile(object):
 
         ele = driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
-        
+
         number_dict = {}
         for llist in soup.findAll('li'):
             spans = llist.findAll('span')
@@ -181,10 +181,8 @@ class O2mobile(object):
         returns:
             number_dict - dictionary details
         """
-        html = driver.page_source
-  
         ele = driver.find_element_by_xpath("//span[contains(text(), 'Mein O')]")
-        ele.click()        
+        ele.click()
         wait_for_element(driver, 'tariff-attributes', 'class', 25)
 
         try:
@@ -193,7 +191,7 @@ class O2mobile(object):
             dnumber = spans[1].text.strip()
         except:
             dnumber = None
-        
+
         result = False
         if number != dnumber:
             result = self.switch_number(driver, number)
@@ -277,7 +275,7 @@ class O2mobile(object):
         else:
             link = driver.find_element_by_link_text('Mein Verbrauch')
             link.click()
-        
+
             if wait_for_element(driver, 'tariff-attributes', 'class', 25):
                 return driver
             else:
@@ -285,18 +283,6 @@ class O2mobile(object):
                 sys.exit(0)
                 return None
 
-    def close_instance(self, driver):
-        """ closes an exisitng selenium web driver instance by using either PhantomJS or Mozilla
-
-            args:
-                driver    - selenium driver object
-
-            returns:
-                None
-        """
-        driver.close()
-        return None                
-                
     def new_instance(self, debug):
         """ initializes a new selenium web driver instance by using either PhantomJS or Mozilla
             and returns a reference to the browser object for further processing

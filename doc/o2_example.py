@@ -1,5 +1,5 @@
 #!/usr/bin/python
-""" joerns o2 check tool """
+""" example script to access the portal """
 
 from __future__ import print_function
 import sys
