@@ -97,3 +97,8 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+/*.exe
+/o2_check.py
+/o2_devel.py
+/o2_test.py

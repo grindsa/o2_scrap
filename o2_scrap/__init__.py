@@ -1,0 +1,1 @@
+from .o2_scrap import O2mobile
