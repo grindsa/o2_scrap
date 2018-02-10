@@ -40,13 +40,13 @@ Please make sure python and all the above modules had been installed successfull
 2. move the "o2_scrap" subfolder into the directory your script is located
 
 ### Usage
-
+#### for mobile contracts
 you need to import o2_scrap into your script
 ```
 > from o2_scrap import O2mobile
 ``` 
 
-create a new instance of DKBRobo and assing this object to a local variable
+create a new instance of O2mobile class and assign the object to a local variable
 ```
 > O2M = O2mobile()
 ```
@@ -109,10 +109,10 @@ To get the latest bills the method get_bills() has to be used.
 ```
 bill_list = O2M.get_bills(o2b)
 ```
-The method returns a list of bills in the follwoing format
+The method returns a list of bills in the following format
 ```
 > from pprint import pprint
-> pprint(bill_list
+> pprint(bill_list)
 
 [{'download': u'https://www.o2online.de/ecare/?0-1.ILinkListener-selfcarePanel-content-contentContainer-content-tabContent-content-mainBills-content-list-0-billDownloadPanel-billDocumentParts-0-downloadLink&intcmp=epo2p_quick-links-teaser_mein-o2-mein-verbrauch',
   'price': u'23,13€',
@@ -130,6 +130,57 @@ The method returns a list of bills in the follwoing format
   'price': u'67,44€',
   'text': u'Rechnung vom 05.09.17'}]
 ```
+
+to close the browser instance and end the session use the close_instance() methods
+```
+> O2M.close_instance(o2b)
+```
+
+#### for DSL contracts
+
+create a new instance of O2dsl class and assign the object to a local variable
+```
+> O2D = O2dsl()
+```
+
+login to O2 Web portal
+
+```
+> o2b = O2D.login(<user-account>, <passoword>, debug (0 or 1))
+```
+
+this method will return a reference to a selenium browser object you need for later queries
+```
+> print(o2b)
+<selenium.webdriver.firefox.webdriver.WebDriver (session="4a3393d4-b2fa-41c8-b32c-57a61a4b757c")>
+```    
+
+Usage statistics can be obtained by using the get_overview() method
+```
+> data_usage = O2D.get_overview(O2B)
+```
+the method will return a dictionary containing
+- the actual data usage
+- the monthly limit
+- the prognosed data usage by end of the period
+- the remaining time till period ends
+- a dictionary with the data consumption of the last 6 months
+
+```
+> from pprint import pprint
+> pprint(data_usage)
+{'history': [{'from': u'15.08.', 'to': u'15.09.', 'usage': 213},
+             {'from': u'15.09.', 'to': u'15.10.', 'usage': 271},
+             {'from': u'15.10.', 'to': u'15.11.', 'usage': 326},
+             {'from': u'15.11.', 'to': u'15.12.', 'usage': 123},
+             {'from': u'15.12.', 'to': u'15.01.', 'usage': 89},
+             {'from': u'15.01.', 'to': u'15.02.', 'usage': 472}],
+ 'limit': 300,
+ 'prognosed': 169,
+ 'remaining': u'Noch 25 Tage im Rechnungsmonat',
+ 'since': u'Verbrauchte Daten seit 15.02.2018',
+ 'used': 66}
+ ```
 
 ## Further documentation
 please check the [doc](https://github.com/grindsa/dkb-robo/tree/master/doc) folder of the project. You will find further documenation and an example scripts of all dkb-robo methods there.

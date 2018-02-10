@@ -11,6 +11,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 if sys.version_info > (3, 0):
     import importlib
@@ -105,7 +106,7 @@ class O2mobile(object):
                 password.send_keys(pwd)
                 btns = driver.find_element_by_xpath("//*[contains(text(), 'Einloggen')]")
                 btns.click()
-            except:
+            except NoSuchElementException:
                 pass
 
     def close_instance(self, driver):
@@ -166,7 +167,7 @@ class O2mobile(object):
             spans = llist.findAll('span')
             try:
                 number_dict[spans[1].text.strip()] = spans[0].text.strip()
-            except:
+            except IndexError:
                 pass
 
         return number_dict
@@ -189,7 +190,7 @@ class O2mobile(object):
             soup = BeautifulSoup(driver.find_element_by_class_name('side-nav-contract-choice-link').get_attribute('innerHTML'), 'html5lib')
             spans = soup.findAll('span')
             dnumber = spans[1].text.strip()
-        except:
+        except IndexError:
             dnumber = None
 
         result = False
@@ -211,7 +212,7 @@ class O2mobile(object):
                 number_dict['data-usage']['limit'] = spans[2].text.strip()
                 number_dict['data-usage']['autoadjust'] = soup.find('div', attrs={'class':'usage-items-small'},).text.strip()
                 number_dict['data-usage']['remaining'] = soup.find('span', attrs={'class':'highlight small'},).text.strip()
-            except:
+            except IndexError:
                 pass
 
             # get plan data
@@ -222,7 +223,7 @@ class O2mobile(object):
                 number_dict['plan-data']['tariff'] = soup.find('h2', attrs={'class':'h2 highlight'},).text.strip()
                 try:
                     number_dict['plan-data']['price'] = soup.find('div', attrs={'class':'price-single'},).text.strip()
-                except:
+                except AttributeError:
                     pass
 
                 dlitem = soup.find("dl")
@@ -255,16 +256,16 @@ class O2mobile(object):
         # open page
         try:
             driver.get('https://login.o2online.de/auth/login')
-        except:
-            print('error connecting to {0}'.format('https://login.o2online.de/auth/login'))
+        except TimeoutException:
+            print('timeout connecting to {0}'.format('https://login.o2online.de/auth/login'))
             sys.exit(0)
 
         self.auth(driver, user, pwd)
 
         # catch login error
         try:
-            error = driver.find_element_by_xpath('//div[contains(@class, "alert") and contains(@class, "alert-danger")]').text
-        except:
+            error = driver.find_element_by_xpath('//div[contains(@class, "alert") and contains(@class, "alert-danger")]').text.strip()
+        except NoSuchElementException:
             error = None
 
         if error:
@@ -322,8 +323,144 @@ class O2mobile(object):
                     return wait_for_element(driver, 'tariff-attributes', 'class', 25)
                 else:
                     return False
-            except:
+            except NoSuchElementException:
                 print('number "{0}" could no tbe found in portal'.format(number))
                 return False
         else:
             return False
+
+class O2dsl(object):
+    """ class to fetch information from dsl accounts """
+
+    def auth(self, driver, user, pwd):
+        """ authenticates towards an o2 portal by using a user password combination
+
+            args:
+                driver   - selenium driver object
+                user     - username
+                password - password
+
+            returns:
+                None
+        """
+        if wait_for_element(driver, 'benutzername', 'id', 15):
+            try:
+                username = driver.find_element_by_id("benutzername")
+                password = driver.find_element_by_id("passwort")
+                username.send_keys(user)
+                password.send_keys(pwd)
+                btns = driver.find_element_by_id('loginButton')
+                btns.click()
+            except NoSuchElementException:
+                pass
+
+    def close_instance(self, driver):
+        """ closes an existing selenium web driver instance by using either PhantomJS or Mozilla
+
+            args:
+                driver - selenium driver object
+
+            returns:
+                None
+        """
+        driver.close()
+        return None
+
+    def get_overview(self, driver):
+        """ get data consumption
+
+        args:
+            driver - reference to selenium driver object
+
+        returns:
+            usage_dict - dictionary with details
+        """
+        driver.get('https://dsl.o2online.de/selfcare/content/segment/kundencenter/meindslfestnetz/dslverbrauch/')
+
+        if wait_for_element(driver, 'usageoverview', 'class', 15):
+            soup = BeautifulSoup(driver.page_source, 'html5lib')
+            data_dic = {}
+
+            # collect actual usage
+            ublock = soup.find('div', attrs={'class':'datablock usedvolume'},)
+            (used_volume, limit) = ublock.find('div', attrs={'class':'value'},).text.strip().split('/')
+            limit = limit.replace(' GB', '')
+
+            data_dic['used'] = int(used_volume.rstrip(' '))
+            data_dic['limit'] = int(limit.lstrip(' '))
+            data_dic['since'] = ublock.find('div', attrs={'class':'label'},).text.strip()
+            data_dic['remaining'] = ublock.find('div', attrs={'class':'textblock'},).text.strip()
+
+            # collect prognosed usage
+            ublock = soup.find('div', attrs={'class':'datablock prognosedvolume'},)
+            (prognosed_volume, _dummy) = ublock.find('div', attrs={'class':'value'},).text.strip().split('/')
+            data_dic['prognosed'] = int(prognosed_volume.rstrip(' '))
+
+            # create 6 months usage history
+            data_dic['history'] = []
+            ublock = soup.find('div', attrs={'id':'throttleoverview'},)
+            for mlist in ublock.findAll('li'):
+                # build temporary hash to be added to list
+                tmp_dic = {}
+                tmp_dic['usage'] = int(mlist.find('span').text.strip().replace(' GB', ''))
+
+                (from_date, to_date) = mlist.find('div', attrs={'class':'month'},).text.strip().split(' ')
+                tmp_dic['from'] = from_date
+                tmp_dic['to'] = to_date
+
+                data_dic['history'].append(tmp_dic)
+
+        return data_dic
+
+    def login(self, user, pwd, debug):
+
+        """ used to login towards an o2-online portal calling the following methods:
+
+
+            args:
+                user      - username
+                password  - password
+                debug     - show browser window (require gecko-engine)
+
+            returns:
+                Upon successfull login a reference to a selenium driver object will be returned.
+                Otherwise the resturn code will be "False" and an error message get printed on STDOUT
+        """
+        driver = self.new_instance(debug)
+        # open page
+        try:
+            driver.get('https://dsl.o2online.de/sso/login')
+        except TimeoutException:
+            print('error connecting to {0}'.format('https://dsl.o2online.de/sso/login'))
+            sys.exit(0)
+
+        self.auth(driver, user, pwd)
+
+        # catch login error
+        try:
+            driver.find_element_by_class_name('alert')
+            print('Login failed! Aborting...')
+            sys.exit(0)
+            return False
+        except NoSuchElementException:
+            if wait_for_element(driver, 'usedvolume', 'class', 15):
+                return driver
+            else:
+                return False
+
+    def new_instance(self, debug):
+        """ initializes a new selenium web driver instance by using either PhantomJS or Mozilla
+            and returns a reference to the browser object for further processing
+
+            args:
+                debug - debug mode
+
+            returns:
+                None
+        """
+        driver = webdriver.PhantomJS()
+        if debug:
+            driver = webdriver.Firefox()
+        driver.set_window_size(1024, 768)
+        driver.set_script_timeout(5)
+        return driver
