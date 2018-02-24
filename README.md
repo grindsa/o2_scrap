@@ -46,28 +46,15 @@ you need to import o2_scrap into your script
 > from o2_scrap import O2mobile
 ``` 
 
-create a new instance of O2mobile class and assign the object to a local variable
+create a new o2_scrap context handler and login to web portal portal to 
 ```
-> O2M = O2mobile()
+> with O2mobile(USER, PASSWORD, DEBUG) as O2M:
 ```
-
-login to O2 Web portal
-
-```
-> o2b = O2M.login(<user-account>, <passoword>, debug (0 or 1))
-```
-
-this method will return a reference to a selenium browser object you need for later queries
-```
-> print(o2b)
-<selenium.webdriver.firefox.webdriver.WebDriver (session="4a3393d4-b2fa-41c8-b32c-57a61a4b757c")>
-```    
 
 The method get_numbers() can be used to get the list of mobile numbers under the same contract 
 ```
-numbers = O2M.get_numbers(o2b)
+> numbers = O2M.get_numbers()
 ```
-* o2b - the reference to the formerly created selenium object
 
 The method returns a dictionary containing the mobile numbers and tariff name
 ```
@@ -82,10 +69,9 @@ The method returns a dictionary containing the mobile numbers and tariff name
 
 To get the mobile data-usage and further plan details use the get_overview() method 
 ```
-> data_dict = O2M.get_overview(o2b, <mobile-number>)
+> data_dict = O2M.get_overview(<mobile-number>)
 ```
-* o2b - the reference to the formerly created selenium object
-* mobile-number - phone number to be queried (as obtained via get_numbers() method)
+* <mobile-number> is the phone number to be queried (format must be as obtained via get_numbers() method)
 
 The method returns a dictionary in the following format
 ```
@@ -105,9 +91,9 @@ The method returns a dictionary in the following format
                'tariff': u'O2 Blue All-in S (2015)'}}
 ```
 
-To get the latest bills the method get_bills() has to be used.
+To get the latest bills the method get_bills() must be used.
 ```
-bill_list = O2M.get_bills(o2b)
+bill_list = O2M.get_bills()
 ```
 The method returns a list of bills in the following format
 ```
@@ -138,26 +124,15 @@ to close the browser instance and end the session use the close_instance() metho
 
 #### for DSL contracts
 
-create a new instance of O2dsl class and assign the object to a local variable
+create a new context handler and login to web portal portal to 
 ```
-> O2D = O2dsl()
-```
-
-login to O2 Web portal
-
-```
-> o2b = O2D.login(<user-account>, <passoword>, debug (0 or 1))
+> with O2dsl(USER, PASSWORD, DEBUG) as O2D:
 ```
 
-this method will return a reference to a selenium browser object you need for later queries
+  
+DSL usage statistics can be obtained by using the get_overview() method
 ```
-> print(o2b)
-<selenium.webdriver.firefox.webdriver.WebDriver (session="4a3393d4-b2fa-41c8-b32c-57a61a4b757c")>
-```    
-
-Usage statistics can be obtained by using the get_overview() method
-```
-> data_usage = O2D.get_overview(O2B)
+> data_usage = O2D.get_overview()
 ```
 the method will return a dictionary containing
 - the actual data usage

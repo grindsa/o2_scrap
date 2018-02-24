@@ -86,54 +86,78 @@ class O2mobile(object):
     """ class to fetch information from mobile accounts """
 
     base_url = 'https://www.o2online.de'
+    user = None
+    pwd = None
+    driver = None
+    debug = False
 
-    def auth(self, driver, user, pwd):
+    def __init__(self, user=None, pwd=None, debug=False):
+        self.user = user
+        self.pwd = pwd
+        self.debug = debug
+
+    def __enter__(self):
+        """
+        Makes DKBRobo a Context Manager
+
+        with DKBRobo("user","pwd") as dkb:
+            print (dkb.lastlogin)
+        """
+        if not self.driver:
+            self.login()
+        return self
+
+    def __exit__(self, *args):
+        """
+        Close the connection at the end of the context
+        """
+        self.logout()
+
+    def auth(self):
         """ authenticates towards an o2 portal by using a user password combination
 
             args:
-                driver   - selenium driver object
-                user     - nclm username
-                password - password
+                self - self
 
             returns:
                 None
         """
-        if wait_for_element(driver, 'IDToken1', 'id', 15):
+        if wait_for_element(self.driver, 'IDToken1', 'id', 15):
             try:
-                username = driver.find_element_by_id("IDToken1")
-                password = driver.find_element_by_id("IDToken2")
-                username.send_keys(user)
-                password.send_keys(pwd)
-                btns = driver.find_element_by_xpath("//*[contains(text(), 'Einloggen')]")
+                username = self.driver.find_element_by_id("IDToken1")
+                password = self.driver.find_element_by_id("IDToken2")
+                username.send_keys(self.user)
+                password.send_keys(self.pwd)
+                btns = self.driver.find_element_by_xpath("//*[contains(text(), 'Einloggen')]")
                 btns.click()
             except NoSuchElementException:
                 pass
 
-    def close_instance(self, driver):
+    def close_instance(self):
         """ closes an existing selenium web driver instance by using either PhantomJS or Mozilla
 
             args:
-                driver - selenium driver object
+                self - self
 
             returns:
                 None
         """
-        driver.close()
+        self.driver.close()
         return None
 
-    def get_bills(self, driver):
+    def get_bills(self):
         """ get list of bills per month
 
             args:
-                driver - selenium driver object
+                self - self
 
             returns:
                 bill_list - list of bills
         """
-        link = driver.find_element_by_link_text('Rechnung')
+        link = self.driver.find_element_by_link_text('Rechnung')
         link.click()
-        if wait_for_element(driver, 'panel-action', 'class', 35):
-            soup = BeautifulSoup(driver.find_element_by_class_name('panel-group-stripped').get_attribute('innerHTML'), 'html5lib')
+        if wait_for_element(self.driver, 'panel-action', 'class', 35):
+            soup = BeautifulSoup(self.driver.find_element_by_class_name('panel-group-stripped').get_attribute('innerHTML'), 'html5lib')
             bill_list = []
             for bill in soup.findAll('div', attrs={'class':'panel panel-action'},):
                 tmp_dict = {}
@@ -145,21 +169,21 @@ class O2mobile(object):
 
         return bill_list
 
-    def get_numbers(self, driver):
+    def get_numbers(self):
         """ get phone numbers belonging to the contract-choice-link
 
             args:
-                driver - selenium driver object
+                self - self
 
             returns:
                 number_dict - dictionary of phone numbers and plan names
         """
-        ele = driver.find_element_by_class_name('side-nav-contract-choice-link')
+        ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
 
-        soup = BeautifulSoup(driver.find_element_by_class_name('side-nav-contract-choice-menu-items').get_attribute('innerHTML'), 'html5lib')
+        soup = BeautifulSoup(self.driver.find_element_by_class_name('side-nav-contract-choice-menu-items').get_attribute('innerHTML'), 'html5lib')
 
-        ele = driver.find_element_by_class_name('side-nav-contract-choice-link')
+        ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
 
         number_dict = {}
@@ -172,22 +196,29 @@ class O2mobile(object):
 
         return number_dict
 
-    def get_overview(self, driver, number):
+    def get_overview(self, number):
         """ get data consumption and contract details for a given number
 
         args:
-            driver - reference to selenium driver object
             number - number to check
 
         returns:
             number_dict - dictionary details
         """
-        ele = driver.find_element_by_xpath("//span[contains(text(), 'Mein O')]")
-        ele.click()
-        wait_for_element(driver, 'tariff-attributes', 'class', 25)
+
+        wait_for_element(self.driver, 'navigation-label', 'class', 25)
+        html = self.driver.page_source
 
         try:
-            soup = BeautifulSoup(driver.find_element_by_class_name('side-nav-contract-choice-link').get_attribute('innerHTML'), 'html5lib')
+            # ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Mein O')]")
+            ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Übersicht')]")
+            ele.click()
+            wait_for_element(self.driver, 'tariff-attributes', 'class', 25)
+        except NoSuchElementException:
+            pass
+
+        try:
+            soup = BeautifulSoup(self.driver.find_element_by_class_name('side-nav-contract-choice-link').get_attribute('innerHTML'), 'html5lib')
             spans = soup.findAll('span')
             dnumber = spans[1].text.strip()
         except IndexError:
@@ -195,13 +226,13 @@ class O2mobile(object):
 
         result = False
         if number != dnumber:
-            result = self.switch_number(driver, number)
+            result = self.switch_number(number)
         else:
             result = True
 
         number_dict = {}
         if result:
-            panels = driver.find_elements_by_class_name('csc-panel')
+            panels = self.driver.find_elements_by_class_name('csc-panel')
             # get data usage
             number_dict['data-usage'] = {}
             soup = BeautifulSoup(panels[0].get_attribute('innerHTML'), 'html5lib')
@@ -214,10 +245,12 @@ class O2mobile(object):
                 number_dict['data-usage']['remaining'] = soup.find('span', attrs={'class':'highlight small'},).text.strip()
             except IndexError:
                 pass
+            except AttributeError:
+                pass
 
             # get plan data
             number_dict['plan-data'] = {}
-            if wait_for_element(driver, 'tariff-attributes', 'class', 25):
+            if wait_for_element(self.driver, 'tariff-attributes', 'class', 25):
                 soup = BeautifulSoup(panels[1].get_attribute('innerHTML'), 'html5lib')
 
                 number_dict['plan-data']['tariff'] = soup.find('h2', attrs={'class':'h2 highlight'},).text.strip()
@@ -237,7 +270,7 @@ class O2mobile(object):
 
         return number_dict
 
-    def login(self, user, pwd, debug):
+    def login(self):
         """ used to login towards an o2-online portal calling the following methods:
                 1. new - to start a new instance
                 2. get - to openan http connection
@@ -252,39 +285,52 @@ class O2mobile(object):
                 Upon successfull login a reference to a selenium driver object will be returned.
                 Otherwise the resturn code will be "False" and an error message get printed on STDOUT
         """
-        driver = self.new_instance(debug)
+        self.driver = self.new_instance()
         # open page
         try:
-            driver.get('https://login.o2online.de/auth/login')
+            self.driver.get('https://login.o2online.de/auth/login')
         except TimeoutException:
             print('timeout connecting to {0}'.format('https://login.o2online.de/auth/login'))
             sys.exit(0)
 
-        self.auth(driver, user, pwd)
+        self.auth()
 
         # catch login error
         try:
-            error = driver.find_element_by_xpath('//div[contains(@class, "alert") and contains(@class, "alert-danger")]').text.strip()
+            error = self.driver.find_element_by_xpath('//div[contains(@class, "alert") and contains(@class, "alert-danger")]').text.strip()
         except NoSuchElementException:
             error = None
 
         if error:
             print('Login failed: {0}'.format(error))
-            self.close_instance(driver)
+            self.close_instance()
             sys.exit(0)
             return None
         else:
-            link = driver.find_element_by_link_text('Mein Verbrauch')
+            link = self.driver.find_element_by_link_text('Mein Verbrauch')
             link.click()
 
-            if wait_for_element(driver, 'tariff-attributes', 'class', 25):
-                return driver
+            if wait_for_element(self.driver, 'tariff-attributes', 'class', 25):
+
+                # get rid of this f**** advertisement popups
+                if wait_for_element(self.driver, 'btn', 'class', 5):
+                    btn = self.driver.find_element_by_xpath('//button[contains(@class, "btn")]')
+                    btn.click()
+                return True
             else:
-                self.close_instance(driver)
+                self.close_instance()
                 sys.exit(0)
                 return None
 
-    def new_instance(self, debug):
+    def logout(self):
+        """ logout method """
+        ele = self.driver.find_element_by_class_name('glyphicon-user')
+        ele.click()
+        ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Logout')]")
+        ele.click()
+        self.close_instance()
+
+    def new_instance(self):
         """ initializes a new selenium web driver instance by using either PhantomJS or Mozilla
             and returns a reference to the browser object for further processing
 
@@ -295,32 +341,32 @@ class O2mobile(object):
                 None
         """
         driver = webdriver.PhantomJS()
-        if debug:
+        if self.debug:
             driver = webdriver.Firefox()
         driver.set_window_size(1024, 768)
         driver.set_script_timeout(5)
         return driver
 
-    def switch_number(self, driver, number):
+    def switch_number(self, number):
         """ switch to a different phone number in o2 web portal
 
             args:
-                driver - selenium driver object
+                number - phone number
 
             returns:
                 True - in case the switch was successful
                 False - in case switch failed
 
         """
-        ele = driver.find_element_by_class_name('side-nav-contract-choice-link')
+        ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
 
-        if wait_for_element(driver, 'side-nav-contract-choice-menu-items', 'class', 25):
+        if wait_for_element(self.driver, 'side-nav-contract-choice-menu-items', 'class', 25):
             try:
-                ele = driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
+                ele = self.driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
                 ele.click()
-                if wait_for_element_to_disappear(driver, 'tariff-attributes', 'class', 35):
-                    return wait_for_element(driver, 'tariff-attributes', 'class', 25)
+                if wait_for_element_to_disappear(self.driver, 'tariff-attributes', 'class', 35):
+                    return wait_for_element(self.driver, 'tariff-attributes', 'class', 25)
                 else:
                     return False
             except NoSuchElementException:
@@ -332,53 +378,80 @@ class O2mobile(object):
 class O2dsl(object):
     """ class to fetch information from dsl accounts """
 
-    def auth(self, driver, user, pwd):
+    base_url = 'https://dsl.o2online.de/'
+    user = None
+    pwd = None
+    driver = None
+    debug = False
+
+    def __init__(self, user=None, pwd=None, debug=False):
+        self.user = user
+        self.pwd = pwd
+        self.debug = debug
+
+    def __enter__(self):
+        """
+        Makes DKBRobo a Context Manager
+
+        with DKBRobo("user","pwd") as dkb:
+            print (dkb.lastlogin)
+        """
+        if not self.driver:
+            self.login()
+        return self
+
+    def __exit__(self, *args):
+        """
+        Close the connection at the end of the context
+        """
+        self.logout()
+
+    def auth(self):
         """ authenticates towards an o2 portal by using a user password combination
 
             args:
-                driver   - selenium driver object
-                user     - username
-                password - password
+                self - self
 
             returns:
                 None
         """
-        if wait_for_element(driver, 'benutzername', 'id', 15):
+        if wait_for_element(self.driver, 'benutzername', 'id', 15):
             try:
-                username = driver.find_element_by_id("benutzername")
-                password = driver.find_element_by_id("passwort")
-                username.send_keys(user)
-                password.send_keys(pwd)
-                btns = driver.find_element_by_id('loginButton')
+                username = self.driver.find_element_by_id("benutzername")
+                password = self.driver.find_element_by_id("passwort")
+                username.send_keys(self.user)
+                password.send_keys(self.pwd)
+                btns = self.driver.find_element_by_id('loginButton')
                 btns.click()
             except NoSuchElementException:
                 pass
 
-    def close_instance(self, driver):
+    def close_instance(self):
         """ closes an existing selenium web driver instance by using either PhantomJS or Mozilla
 
             args:
-                driver - selenium driver object
+                self - self
 
             returns:
                 None
         """
-        driver.close()
+        if not self.debug:
+            self.driver.close()
         return None
 
-    def get_overview(self, driver):
+    def get_overview(self):
         """ get data consumption
 
         args:
-            driver - reference to selenium driver object
+            self - self
 
         returns:
             usage_dict - dictionary with details
         """
-        driver.get('https://dsl.o2online.de/selfcare/content/segment/kundencenter/meindslfestnetz/dslverbrauch/')
+        self.driver.get(self.base_url + 'selfcare/content/segment/kundencenter/meindslfestnetz/dslverbrauch/')
 
-        if wait_for_element(driver, 'usageoverview', 'class', 15):
-            soup = BeautifulSoup(driver.page_source, 'html5lib')
+        if wait_for_element(self.driver, 'usageoverview', 'class', 15):
+            soup = BeautifulSoup(self.driver.page_source, 'html5lib')
             data_dic = {}
 
             # collect actual usage
@@ -412,54 +485,60 @@ class O2dsl(object):
 
         return data_dic
 
-    def login(self, user, pwd, debug):
-
+    def login(self):
         """ used to login towards an o2-online portal calling the following methods:
 
-
             args:
-                user      - username
-                password  - password
-                debug     - show browser window (require gecko-engine)
+                self - self
 
             returns:
                 Upon successfull login a reference to a selenium driver object will be returned.
                 Otherwise the resturn code will be "False" and an error message get printed on STDOUT
         """
-        driver = self.new_instance(debug)
+        self.driver = self.new_instance()
         # open page
         try:
-            driver.get('https://dsl.o2online.de/sso/login')
+            self.driver.get(self.base_url + 'sso/login')
         except TimeoutException:
-            print('error connecting to {0}'.format('https://dsl.o2online.de/sso/login'))
+            print('error connecting to {0}'.format(self.base_url + 'sso/login'))
             sys.exit(0)
 
-        self.auth(driver, user, pwd)
+        self.auth()
 
         # catch login error
         try:
-            driver.find_element_by_class_name('alert')
+            self.driver.find_element_by_class_name('alert')
             print('Login failed! Aborting...')
             sys.exit(0)
             return False
         except NoSuchElementException:
-            if wait_for_element(driver, 'usedvolume', 'class', 15):
-                return driver
-            else:
-                return False
+            return wait_for_element(self.driver, 'usedvolume', 'class', 15)
 
-    def new_instance(self, debug):
+    def logout(self):
+        """ logout mothod
+
+            args:
+                self - self
+            returns:
+                none
+        """
+        btn = self.driver.find_element_by_class_name('logoutUser')
+        btn.click()
+        self.close_instance()
+
+
+    def new_instance(self):
         """ initializes a new selenium web driver instance by using either PhantomJS or Mozilla
             and returns a reference to the browser object for further processing
 
             args:
-                debug - debug mode
+                self - self
 
             returns:
                 None
         """
         driver = webdriver.PhantomJS()
-        if debug:
+        if self.debug:
             driver = webdriver.Firefox()
         driver.set_window_size(1024, 768)
         driver.set_script_timeout(5)
