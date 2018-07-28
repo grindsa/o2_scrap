@@ -15,7 +15,6 @@ To run o2_scrap on your system you need
 
 * [Python] - (https://www.python.org)
 * [Selenium] - (https://pypi.python.org/pypi/selenium) - Selenium Python Bindigs 
-* [PhantomJs] - (http://http://phantomjs.org/) - PhantomJS is a headless WebKit scriptable via a JavaScript API  
 * [geckodriver] - (https://github.com/mozilla/geckodriver) - Proxy for using W3C WebDriver-compatible clients to interact with Gecko-based browsers.
 * [Beautiful Soup]  - (https://www.crummy.com/software/BeautifulSoup/) - a Python library for pulling data out of HTML and XML files.
 
