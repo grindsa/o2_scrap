@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 import sys
+import os
 from bs4 import BeautifulSoup
 
 from selenium import webdriver
@@ -207,7 +208,7 @@ class O2mobile(object):
         """
 
         wait_for_element(self.driver, 'navigation-label', 'class', 25)
-        html = self.driver.page_source
+        # html = self.driver.page_source
 
         try:
             # ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Mein O')]")
@@ -307,17 +308,26 @@ class O2mobile(object):
             sys.exit(0)
             return None
         else:
+            # catch and confirm optin
+            if wait_for_element(self.driver, 'optinAcceptButton', 'id', 25):
+                btn = self.driver.find_element_by_id("optinAcceptButton")
+                btn.click()
+
             link = self.driver.find_element_by_link_text('Mein Verbrauch')
             link.click()
 
-            if wait_for_element(self.driver, 'tariff-attributes', 'class', 25):
-
+            if wait_for_element(self.driver, 'price-single', 'class', 25):
+                # print('single-attr found')
                 # get rid of this f**** advertisement popups
-                if wait_for_element(self.driver, 'btn', 'class', 5):
+                if wait_for_element(self.driver, 'btn', 'class', 25):
+                    # print('catched an ad popup')
                     btn = self.driver.find_element_by_xpath('//button[contains(@class, "btn")]')
                     btn.click()
                 return True
             else:
+                if wait_for_element(self.driver, 'items', 'class', 10):
+                    ele = self.driver.find_element_by_xpath('//div[contains(@class, "items")]').text.strip()
+                    print(ele)
                 self.close_instance()
                 sys.exit(0)
                 return None
@@ -340,9 +350,11 @@ class O2mobile(object):
             returns:
                 None
         """
-        driver = webdriver.PhantomJS()
-        if self.debug:
-            driver = webdriver.Firefox()
+        # driver = webdriver.PhantomJS()
+        if not self.debug:
+            os.environ['MOZ_HEADLESS'] = '1'
+
+        driver = webdriver.Firefox()
         driver.set_window_size(1024, 768)
         driver.set_script_timeout(5)
         return driver

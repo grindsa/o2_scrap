@@ -103,3 +103,4 @@ ENV/
 /o2_check.py
 /o2_devel.py
 /o2_test.py
+/wa_hack_cli.py
