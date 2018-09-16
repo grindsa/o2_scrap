@@ -241,14 +241,32 @@ class O2mobile(object):
             try:
                 block = soup.find('div', attrs={'class':'usage-info'},)
                 spans = block.findAll('span')
-                number_dict['data-usage']['current'] = '{0} {1}'.format(spans[0].text.strip(), spans[1].text.strip())
-                number_dict['data-usage']['limit'] = spans[2].text.strip()
-                number_dict['data-usage']['autoadjust'] = soup.find('div', attrs={'class':'usage-items-small'},).text.strip()
-                number_dict['data-usage']['remaining'] = soup.find('span', attrs={'class':'highlight small'},).text.strip()
-            except IndexError:
-                pass
             except AttributeError:
                 pass
+                
+            try:
+                number_dict['data-usage']['current'] = '{0} {1}'.format(spans[0].text.strip(), spans[1].text.strip())
+            except (IndexError, AttributeError):
+                number_dict['data-usage']['current'] = 'unknown'
+                pass 
+
+            try:                
+                number_dict['data-usage']['limit'] = spans[2].text.strip()
+            except (IndexError, AttributeError):
+                number_dict['data-usage']['limit'] = 'unknown'
+                pass  
+                
+            try:
+                number_dict['data-usage']['autoadjust'] = soup.find('div', attrs={'class':'usage-items-small'},).text.strip()
+            except (IndexError, AttributeError):
+                number_dict['data-usage']['autoadjust'] = 'unknown'
+                pass 
+
+            try:    
+                number_dict['data-usage']['remaining'] = soup.find('span', attrs={'class':'highlight small'},).text.strip()
+            except (IndexError, AttributeError):
+                number_dict['data-usage']['remaining'] = 'unknown'
+                pass 
 
             # get plan data
             number_dict['plan-data'] = {}
@@ -337,7 +355,10 @@ class O2mobile(object):
 
     def logout(self):
         """ logout method """
-        ele = self.driver.find_element_by_class_name('glyphicon-user')
+
+        # ele = self.driver.findElement(By.xpath("(.//[@href='https://login.o2online.de/auth/logout'])"))
+        ele = self.driver.find_element_by_xpath('//a[@href="https://login.o2online.de/auth/logout"]')
+        # ele = self.driver.find_element_by_class_name('glyphicon-user')
         ele.click()
         ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Logout')]")
         ele.click()
