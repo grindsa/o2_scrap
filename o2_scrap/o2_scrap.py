@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+# from selenium.webdriver import FirefoxOptions
 
 if sys.version_info > (3, 0):
     import importlib
@@ -317,20 +318,22 @@ class O2mobile(object):
             link.click()
 
             if wait_for_element(self.driver, 'price-single', 'class', 25):
-                # print('single-attr found')
                 # get rid of this f**** advertisement popups
                 if wait_for_element(self.driver, 'btn', 'class', 25):
                     # print('catched an ad popup')
-                    btn = self.driver.find_element_by_xpath('//button[contains(@class, "btn")]')
-                    btn.click()
+                    try:
+                        btn = self.driver.find_element_by_xpath('//button[contains(@class, "btn")]')
+                        btn.click()
+                    except:
+                        pass
                 return True
             else:
                 if wait_for_element(self.driver, 'items', 'class', 10):
                     ele = self.driver.find_element_by_xpath('//div[contains(@class, "items")]').text.strip()
-                    print(ele)
+                    # print(ele)
                 self.close_instance()
                 sys.exit(0)
-                return None
+                return False
 
     def logout(self):
         """ logout method """
@@ -350,11 +353,10 @@ class O2mobile(object):
             returns:
                 None
         """
-        # driver = webdriver.PhantomJS()
-        if not self.debug:
-            os.environ['MOZ_HEADLESS'] = '1'
-
-        driver = webdriver.Firefox()
+        driver = webdriver.PhantomJS()
+        if self.debug:
+            # opts.add_argument("--headless")
+            driver = webdriver.Firefox()
         driver.set_window_size(1024, 768)
         driver.set_script_timeout(5)
         return driver
