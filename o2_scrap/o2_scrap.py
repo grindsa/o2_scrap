@@ -12,6 +12,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.firefox.options import Options
+import time
 
 if sys.version_info > (3, 0):
     import importlib
@@ -102,10 +104,11 @@ class O2mobile(object):
     driver = None
     debug = False
 
-    def __init__(self, user=None, pwd=None, debug=False):
+    def __init__(self, user=None, pwd=None, debug=False, headless=True):
         self.user = user
         self.pwd = pwd
         self.debug = debug
+        self.headless = headless
 
     def __enter__(self):
         """
@@ -136,6 +139,8 @@ class O2mobile(object):
                 None
         """
         print_debug(self.debug, 'auth started')
+        if self.debug:
+            self.driver.save_screenshot('01-auth-in.png')          
         if wait_for_element(self.driver, 'IDToken1', 'id', 15):
             try:
                 username = self.driver.find_element_by_id("IDToken1")
@@ -144,8 +149,12 @@ class O2mobile(object):
                 password.send_keys(self.pwd)
                 btns = self.driver.find_element_by_xpath("//*[contains(text(), 'Einloggen')]")
                 btns.click()
+                if self.debug:
+                    self.driver.save_screenshot('02-auth-after-login.png')                   
             except NoSuchElementException:
-                pass
+                if self.debug:            
+                    self.driver.save_screenshot('02-auth-exception.png')              
+                pass       
         print_debug(self.debug, 'auth done')
 
     def close_instance(self):
@@ -344,20 +353,26 @@ class O2mobile(object):
         self.driver = self.new_instance()
         # open page
         try:
+            # self.driver.get('https://login.o2online.de/auth/login?goto=https%3A%2F%2Fwww.o2online.de%2Fmein-o2%2F')
             self.driver.get('https://login.o2online.de/auth/login')
         except TimeoutException:
             print('timeout connecting to {0}'.format('https://login.o2online.de/auth/login'))
             sys.exit(0)
 
+        if self.debug:
+            self.driver.save_screenshot('00-login.png')              
+            
         print_debug(self.debug, 'login-site fetched')
         self.auth()
-
+   
         # catch login error
         try:
             error = self.driver.find_element_by_xpath('//div[contains(@class, "alert") and contains(@class, "alert-danger")]').text.strip()
         except NoSuchElementException:
             error = None
         print_debug(self.debug, 'login error handling completed')
+        
+        
         if error:
             print('Login failed: {0}'.format(error))
             self.close_instance()
@@ -369,6 +384,10 @@ class O2mobile(object):
                 print_debug(self.debug, 'found optinAcceptButton')
                 btn = self.driver.find_element_by_id("optinAcceptButton")
                 btn.click()
+            else: 
+                if self.debug:
+                    self.driver.save_screenshot('05-optin.png')            
+
             print_debug(self.debug, 'optinAcceptButton wait done')
 
             # catch cookie-message
@@ -376,11 +395,19 @@ class O2mobile(object):
                 print_debug(self.debug, 'found uc-btn-accept-banner')
                 btn = self.driver.find_element_by_id("uc-btn-accept-banner")
                 btn.click()
+            else: 
+                if self.debug:
+                    self.driver.save_screenshot('06-cookie.png')      
             print_debug(self.debug, 'cookie message wait done')
 
-            link = self.driver.find_element_by_link_text('Mein Verbrauch')
-            link.click()
-            print_debug(self.debug, 'Mein Verbrauch click')
+            try:
+                link = self.driver.find_element_by_link_text('Mein Verbrauch')
+                link.click()
+                print_debug(self.debug, 'Mein Verbrauch click')                
+            except BaseException:
+                if self.debug:
+                    self.driver.save_screenshot('07-mv.png')
+                print_debug(self.debug, 'Mein Verbrauch failed')                
 
             if wait_for_element(self.driver, 'price-single', 'class', 25):
                 print_debug(self.debug, 'price-single found')
@@ -426,10 +453,10 @@ class O2mobile(object):
             returns:
                 None
         """
-        driver = webdriver.PhantomJS()
-        if self.debug:
-            # opts.add_argument("--headless")
-            driver = webdriver.Firefox()
+        options = Options()
+        if self.headless:         
+            options.add_argument('-headless')
+        driver = webdriver.Firefox(firefox_options=options)        
         driver.set_window_size(1024, 768)
         driver.set_script_timeout(5)
         return driver

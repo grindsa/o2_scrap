@@ -104,3 +104,4 @@ ENV/
 /o2_devel.py
 /o2_test.py
 /wa_hack_cli.py
+/*.png
