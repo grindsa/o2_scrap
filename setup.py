@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='o2_scrap',
-    version='0.4.5',
+    version='0.4.6',
     description='library to get data-usage and plan details from O2 germany mobile contracts',
     url='http://github.com/grindsa/o2_scrap',
     author='grindsa',
