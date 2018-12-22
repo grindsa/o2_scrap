@@ -47,8 +47,13 @@ you need to import o2_scrap into your script
 
 create a new o2_scrap context handler and login to web portal portal to 
 ```
-> with O2mobile(USER, PASSWORD, DEBUG) as O2M:
+> with O2mobile(USER, PASSWORD, DEBUG, HEADLESS) as O2M:
 ```
+
+- USER: User-account for o2-online.de
+- PASSWORD: Password for the above user-account
+- DEBUG: True/False - Debug-mode shows more messages and takes screenshots
+- HEADLESS: True/Fals - Turn headless mode on/off (usefull for debugging)
 
 The method get_numbers() can be used to get the list of mobile numbers under the same contract 
 ```
