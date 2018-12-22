@@ -33,7 +33,7 @@ def print_debug(debug, text):
     if debug:
         print('{0}: {1}'.format(datetime.now(), text))
 
-def wait_for_element(driver, ele, etype, timeout):
+def wait_for_element(driver, debug, ele, etype, timeout):
     """ this function monitors a html page before executing the script further
         and waits for an element to appear
 
@@ -47,6 +47,7 @@ def wait_for_element(driver, ele, etype, timeout):
             True - in case the element was found
             False - if timeout kicks in and aborts the function
     """
+    print_debug(debug, 'wait_for_element: {0}:{1}:{2}'.format(etype, ele, timeout))    
     try:
         if etype == 'id':
             element_present = EC.element_to_be_clickable((By.ID, ele))
@@ -56,16 +57,18 @@ def wait_for_element(driver, ele, etype, timeout):
             element_present = EC.element_to_be_clickable((By.NAME, ele))
         elif etype == 'class':
             element_present = EC.element_to_be_clickable((By.CLASS_NAME, ele))
+            # element_present = EC.presence_of_element_located((By.XPATH, '//@class, "%s"]' % (ele)))            
         else:
             element_present = EC.presence_of_element_located((By.XPATH, '//%s[text()="%s"]' % (etype, ele)))
-
+            
         WebDriverWait(driver, timeout).until(element_present)
+        print_debug(debug, "found {0}:{1}".format(etype, ele))        
         return True
     except TimeoutException:
-        print("Timed out waiting for page to load")
+        print_debug(debug, "Timed out waiting for page to load {0}:{1}".format(etype, ele))
         return False
 
-def wait_for_element_to_disappear(driver, ele, etype, timeout):
+def wait_for_element_to_disappear(driver, debug, ele, etype, timeout):
     """ this function monitors a html page before executing the script further
         and waits for an element to disappear
 
@@ -141,7 +144,7 @@ class O2mobile(object):
         print_debug(self.debug, 'auth started')
         if self.debug:
             self.driver.save_screenshot('01-auth-in.png')          
-        if wait_for_element(self.driver, 'IDToken1', 'id', 15):
+        if wait_for_element(self.driver, self.debug, 'IDToken1', 'id', 15):
             try:
                 username = self.driver.find_element_by_id("IDToken1")
                 password = self.driver.find_element_by_id("IDToken2")
@@ -180,7 +183,7 @@ class O2mobile(object):
         """
         link = self.driver.find_element_by_link_text('Rechnung')
         link.click()
-        if wait_for_element(self.driver, 'panel-action', 'class', 35):
+        if wait_for_element(self.driver, self.debug, 'panel-action', 'class', 35):
             soup = BeautifulSoup(self.driver.find_element_by_class_name('panel-group-stripped').get_attribute('innerHTML'), 'html5lib')
             bill_list = []
             for bill in soup.findAll('div', attrs={'class':'panel panel-action'},):
@@ -230,28 +233,27 @@ class O2mobile(object):
             number_dict - dictionary details
         """  
         print_debug(self.debug, 'get_overview({0})'.format(number))
-        wait_for_element(self.driver, 'navigation-label', 'class', 25)
+        wait_for_element(self.driver, self.debug, 'navigation-label', 'class', 25)
         print_debug(self.debug, 'wait for navigation-label done')
         self.switch_number(number)           
-        # wait_for_element(self.driver, 'csc-panel', 'class', 25)
-        # print_debug(self.debug, 'csc-panel done')
-        wait_for_element(self.driver, 'tariff-attributes', 'class', 25)
+        wait_for_element(self.driver, self.debug, 'tariff-attributes', 'class', 25)
         print_debug(self.debug, 'tariff-attributes done') 
         
-        if wait_for_element(self.driver, 'btn', 'class', 15):
-            print_debug(self.debug, 'catched an ad')
-            try:
-                btn = self.driver.find_element_by_xpath('//button[contains(@class, "btn")]')
-                btn.click()
-                print_debug(self.debug, 'pressed button to close the ad-window')
-            except BaseException:
-                print_debug(self.debug, 'add Button not found')
+        # get rid of this f**** advertisement pop-ups
+        print_debug(self.debug, 'sleep 5 seconds')
+        time.sleep(5)
+        try:
+            ads = self.driver.find_element_by_xpath('//button[@class="btn"]')
+            ads.click()
+            print_debug(self.debug, 'pressed button to close overlay window')
+        except BaseException:
+            print_debug(self.debug, 'no add found') 
 
         try:
             # ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Mein O')]")
             ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Übersicht')]")
             ele.click()
-            wait_for_element(self.driver, 'tariff-attributes', 'class', 25)
+            wait_for_element(self.driver, self.debug, 'tariff-attributes', 'class', 25)
         except NoSuchElementException:
             print_debug(self.debug, 'Übersicht not found')
 
@@ -312,7 +314,7 @@ class O2mobile(object):
 
             # get plan data
             number_dict['plan-data'] = {}
-            if wait_for_element(self.driver, 'tariff-attributes', 'class', 25):
+            if wait_for_element(self.driver, self.debug, 'tariff-attributes', 'class', 25):
                 soup = BeautifulSoup(panels[1].get_attribute('innerHTML'), 'html5lib')
 
                 number_dict['plan-data']['tariff'] = soup.find('h2', attrs={'class':'h2 highlight'},).text.strip()
@@ -380,7 +382,7 @@ class O2mobile(object):
             return None
         else:
             # catch and confirm optin
-            if wait_for_element(self.driver, 'optinAcceptButton', 'id', 15):
+            if wait_for_element(self.driver, self.debug, 'optinAcceptButton', 'id', 15):
                 print_debug(self.debug, 'found optinAcceptButton')
                 btn = self.driver.find_element_by_id("optinAcceptButton")
                 btn.click()
@@ -391,13 +393,13 @@ class O2mobile(object):
             print_debug(self.debug, 'optinAcceptButton wait done')
 
             # catch cookie-message
-            if wait_for_element(self.driver, 'uc-btn-accept-banner', 'id', 15):
+            if wait_for_element(self.driver, self.debug, 'uc-btn-accept-banner', 'id', 15):
                 print_debug(self.debug, 'found uc-btn-accept-banner')
                 btn = self.driver.find_element_by_id("uc-btn-accept-banner")
                 btn.click()
             else: 
                 if self.debug:
-                    self.driver.save_screenshot('06-cookie.png')      
+                    self.driver.save_screenshot('06-cookie.png')    
             print_debug(self.debug, 'cookie message wait done')
 
             try:
@@ -405,27 +407,31 @@ class O2mobile(object):
                 link.click()
                 print_debug(self.debug, 'Mein Verbrauch click')                
             except BaseException:
-                if self.debug:
-                    self.driver.save_screenshot('07-mv.png')
-                print_debug(self.debug, 'Mein Verbrauch failed')                
+                print_debug(self.debug, 'Mein Verbrauch failed')  
+                
+            if self.debug:
+                self.driver.save_screenshot('07-mv.png')
 
-            if wait_for_element(self.driver, 'price-single', 'class', 25):
+            if wait_for_element(self.driver, self.debug, 'price-single', 'class', 25):
                 print_debug(self.debug, 'price-single found')
-                # get rid of this f**** advertisement popups
-                if wait_for_element(self.driver, 'btn', 'class', 15):
-                    print_debug(self.debug, 'catched an ad')
-                    try:
-                        btn = self.driver.find_element_by_xpath('//button[contains(@class, "btn")]')
-                        btn.click()
-                        print_debug(self.debug, 'pressed button to close overlay window')
-                    except BaseException:
-                        print_debug(self.debug, 'button to close overlay window not found')
-
+                
+                # get rid of this f**** advertisement pop-ups
+                print_debug(self.debug, 'sleep 5 seconds')
+                time.sleep(5)
+                try:
+                    ads = self.driver.find_element_by_xpath('//button[@class="btn"]')
+                    ads.click()
+                    print_debug(self.debug, 'pressed button to close overlay window')
+                except BaseException:
+                    print_debug(self.debug, 'no add found') 
+                
+                if self.debug:
+                    self.driver.save_screenshot('08-end-login.png')
                 print_debug(self.debug, 'we will return true now')
                 return True
             else:
                 print_debug(self.debug, 'price-single NOT found')
-                if wait_for_element(self.driver, 'items', 'class', 10):
+                if wait_for_element(self.driver, self.debug, 'items', 'class', 10):
                     _ele = self.driver.find_element_by_xpath('//div[contains(@class, "items")]').text.strip()
                     # print(ele)
                 self.close_instance()
@@ -454,7 +460,8 @@ class O2mobile(object):
                 None
         """
         options = Options()
-        if self.headless:         
+        if self.headless:   
+            print_debug(self.debug, 'actiating headless mode')
             options.add_argument('-headless')
         driver = webdriver.Firefox(firefox_options=options)        
         driver.set_window_size(1024, 768)
@@ -472,19 +479,19 @@ class O2mobile(object):
                 False - in case switch failed
 
         """
-        print_debug(self.debug, 'switch_numer()')        
+        print_debug(self.debug, 'switch_number({0})'.format(number))
         ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
         print_debug(self.debug, 'side-nav-contract-choice-link clicked') 
-        if wait_for_element(self.driver, 'side-nav-contract-choice-menu-items', 'class', 25):
+        if wait_for_element(self.driver, self.debug, 'side-nav-contract-choice-menu-items', 'class', 25):
             print_debug(self.debug, 'found side-nav-contract-choice-menu-items')         
             try:
                 ele = self.driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
                 ele.click()
                 print_debug(self.debug, 'found list-entry for number: {0}'.format(number))                 
-                if wait_for_element_to_disappear(self.driver, 'tariff-attributes', 'class', 25):
+                if wait_for_element_to_disappear(self.driver, self.debug, 'tariff-attributes', 'class', 25):
                     print_debug(self.debug, 'found tariff-attributes') 
-                    return wait_for_element(self.driver, 'tariff-attributes', 'class', 25)
+                    return wait_for_element(self.driver, self.debug, 'tariff-attributes', 'class', 25)
                 else:
                     print_debug(self.debug, 'did not fiund tariff-attributes')                    
                     return False
@@ -534,7 +541,7 @@ class O2dsl(object):
             returns:
                 None
         """
-        if wait_for_element(self.driver, 'benutzername', 'id', 15):
+        if wait_for_element(self.driver, self.debug, 'benutzername', 'id', 15):
             try:
                 username = self.driver.find_element_by_id("benutzername")
                 password = self.driver.find_element_by_id("passwort")
@@ -569,7 +576,7 @@ class O2dsl(object):
         """
         self.driver.get(self.base_url + 'selfcare/content/segment/kundencenter/meindslfestnetz/dslverbrauch/')
 
-        if wait_for_element(self.driver, 'usageoverview', 'class', 15):
+        if wait_for_element(self.driver, self.debug, 'usageoverview', 'class', 15):
             soup = BeautifulSoup(self.driver.page_source, 'html5lib')
             data_dic = {}
 
@@ -631,7 +638,7 @@ class O2dsl(object):
             sys.exit(0)
             return False
         except NoSuchElementException:
-            return wait_for_element(self.driver, 'usedvolume', 'class', 15)
+            return wait_for_element(self.driver, self.debug, 'usedvolume', 'class', 15)
 
     def logout(self):
         """ logout mothod
