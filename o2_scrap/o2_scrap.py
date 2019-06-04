@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" dkb internet banking automation library """
+""" o2online screen scrap library """
 
 from __future__ import print_function
 import sys
+import re
+import time
 from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -13,7 +15,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.firefox.options import Options
-import time
 
 if sys.version_info > (3, 0):
     import importlib
@@ -23,13 +24,7 @@ else:
     sys.setdefaultencoding('utf8')
 
 def print_debug(debug, text):
-    """ little helper to print debug messages
-        args:
-            debug = debug flag
-            text  = text to print
-        returns:
-            (text)
-    """
+    """ little helper to print debug messages """
     if debug:
         print('{0}: {1}'.format(datetime.now(), text))
 
@@ -47,7 +42,7 @@ def wait_for_element(driver, debug, ele, etype, timeout):
             True - in case the element was found
             False - if timeout kicks in and aborts the function
     """
-    print_debug(debug, 'wait_for_element: {0}:{1}:{2}'.format(etype, ele, timeout))    
+    print_debug(debug, 'wait_for_element: {0}:{1}:{2}'.format(etype, ele, timeout))
     try:
         if etype == 'id':
             element_present = EC.element_to_be_clickable((By.ID, ele))
@@ -57,18 +52,18 @@ def wait_for_element(driver, debug, ele, etype, timeout):
             element_present = EC.element_to_be_clickable((By.NAME, ele))
         elif etype == 'class':
             element_present = EC.element_to_be_clickable((By.CLASS_NAME, ele))
-            # element_present = EC.presence_of_element_located((By.XPATH, '//@class, "%s"]' % (ele)))            
+            # element_present = EC.presence_of_element_located((By.XPATH, '//@class, "%s"]' % (ele)))
         else:
             element_present = EC.presence_of_element_located((By.XPATH, '//%s[text()="%s"]' % (etype, ele)))
-            
+
         WebDriverWait(driver, timeout).until(element_present)
-        print_debug(debug, "found {0}:{1}".format(etype, ele))        
+        print_debug(debug, "found {0}:{1}".format(etype, ele))
         return True
     except TimeoutException:
         print_debug(debug, "Timed out waiting for page to load {0}:{1}".format(etype, ele))
         return False
 
-def wait_for_element_to_disappear(driver, debug, ele, etype, timeout):
+def wait_for_element_to_disappear(driver, _debug, ele, etype, timeout):
     """ this function monitors a html page before executing the script further
         and waits for an element to disappear
 
@@ -130,7 +125,7 @@ class O2mobile(object):
         Close the connection at the end of the context
         """
         print_debug(self.debug, 'we are in __exit__')
-        self.logout()
+        # self.logout()
 
     def auth(self):
         """ authenticates towards an o2 portal by using a user password combination
@@ -143,7 +138,7 @@ class O2mobile(object):
         """
         print_debug(self.debug, 'auth started')
         if self.debug:
-            self.driver.save_screenshot('01-auth-in.png')          
+            self.driver.save_screenshot('01-auth-in.png')
         if wait_for_element(self.driver, self.debug, 'IDToken1', 'id', 15):
             try:
                 username = self.driver.find_element_by_id("IDToken1")
@@ -153,11 +148,10 @@ class O2mobile(object):
                 btns = self.driver.find_element_by_xpath("//*[contains(text(), 'Einloggen')]")
                 btns.click()
                 if self.debug:
-                    self.driver.save_screenshot('02-auth-after-login.png')                   
+                    self.driver.save_screenshot('02-auth-after-login.png')
             except NoSuchElementException:
-                if self.debug:            
-                    self.driver.save_screenshot('02-auth-exception.png')              
-                pass       
+                if self.debug:
+                    self.driver.save_screenshot('02-auth-exception.png')
         print_debug(self.debug, 'auth done')
 
     def close_instance(self):
@@ -231,110 +225,62 @@ class O2mobile(object):
 
         returns:
             number_dict - dictionary details
-        """  
+        """
         print_debug(self.debug, 'get_overview({0})'.format(number))
         wait_for_element(self.driver, self.debug, 'navigation-label', 'class', 25)
         print_debug(self.debug, 'wait for navigation-label done')
-        self.switch_number(number)           
-        wait_for_element(self.driver, self.debug, 'tariff-attributes', 'class', 25)
-        print_debug(self.debug, 'tariff-attributes done') 
-        
-        # get rid of this f**** advertisement pop-ups
-        print_debug(self.debug, 'sleep 5 seconds')
-        time.sleep(5)
-        try:
-            ads = self.driver.find_element_by_xpath('//button[@class="btn"]')
-            ads.click()
-            print_debug(self.debug, 'pressed button to close overlay window')
-        except BaseException:
-            print_debug(self.debug, 'no add found') 
-
-        try:
-            # ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Mein O')]")
-            ele = self.driver.find_element_by_xpath("//span[contains(text(), 'Übersicht')]")
-            ele.click()
-            wait_for_element(self.driver, self.debug, 'tariff-attributes', 'class', 25)
-        except NoSuchElementException:
-            print_debug(self.debug, 'Übersicht not found')
-
-        try:
-            soup = BeautifulSoup(self.driver.find_element_by_class_name('side-nav-contract-choice-link').get_attribute('innerHTML'), 'html5lib')
-            spans = soup.findAll('span')
-            dnumber = spans[1].text.strip()
-        except IndexError:
-            dnumber = None
-
-        result = False
-        if number != dnumber:
-            print_debug(self.debug, 'Switch to number: {0}'.format(number))
-            result = self.switch_number(number)
-        else:
-            result = True
-
+        result = self.switch_number(number)
+        time.sleep(2)
         number_dict = {}
         if result:
-            panels = self.driver.find_elements_by_class_name('csc-panel')
-            # get data usage
-            number_dict['data-usage'] = {}
-            soup = BeautifulSoup(panels[0].get_attribute('innerHTML'), 'html5lib')
-            try:
-                block = soup.find('div', attrs={'class':'usage-info'},)
-                spans = block.findAll('span')
-                print_debug(self.debug, 'usage-info/span found')
-            except AttributeError:
-                print_debug(self.debug, 'usage-info/span NOT found')
-
-            try:
-                number_dict['data-usage']['current'] = '{0} {1}'.format(spans[0].text.strip(), spans[1].text.strip())
-                print_debug(self.debug, 'data-usage current found: {0}'.format(number_dict['data-usage']['current']))
-            except (IndexError, AttributeError):
-                number_dict['data-usage']['current'] = 'unknown'
-                print_debug(self.debug, 'data-usage current exception')
-
-            try:
-                number_dict['data-usage']['limit'] = spans[2].text.strip()
-                print_debug(self.debug, 'data-usage limit found: {0}'.format(number_dict['data-usage']['limit']))
-            except (IndexError, AttributeError):
-                number_dict['data-usage']['limit'] = 'unknown'
-                print_debug(self.debug, 'data-usage limit exception')
-
-            try:
-                number_dict['data-usage']['autoadjust'] = soup.find('div', attrs={'class':'usage-items-small'},).text.strip()
-                print_debug(self.debug, 'data-usage autoadjust found: {0}'.format(number_dict['data-usage']['autoadjust']))
-            except (IndexError, AttributeError):
-                number_dict['data-usage']['autoadjust'] = 'unknown'
-                print_debug(self.debug, 'data-usage autoadjust exception')
-
-            try:
-                number_dict['data-usage']['remaining'] = soup.find('span', attrs={'class':'highlight small'},).text.strip()
-                print_debug(self.debug, 'data-usage remaining found: {0}'.format(number_dict['data-usage']['remaining']))
-            except (IndexError, AttributeError):
-                number_dict['data-usage']['remaining'] = 'unknown'
-                print_debug(self.debug, 'data-usage remaining exception')
-
-            # get plan data
-            number_dict['plan-data'] = {}
-            if wait_for_element(self.driver, self.debug, 'tariff-attributes', 'class', 25):
-                soup = BeautifulSoup(panels[1].get_attribute('innerHTML'), 'html5lib')
-
-                number_dict['plan-data']['tariff'] = soup.find('h2', attrs={'class':'h2 highlight'},).text.strip()
-                print_debug(self.debug, 'plan-data tariff found: {0}'.format(number_dict['plan-data']['tariff']))
+            if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 25):
+                print_debug(self.debug, 'usage-status-summary')
+                if self.debug:
+                    self.driver.save_screenshot('10-user-status-summary-succ.png')
+                number_dict['data-usage'] = {}
+                soup = BeautifulSoup(self.driver.find_element_by_tag_name('usage-monitor-wrapper').get_attribute('innerHTML'), 'lxml')
+                # actual data usage
                 try:
-                    number_dict['plan-data']['price'] = soup.find('div', attrs={'class':'price-single'},).text.strip()
-                    print_debug(self.debug, 'plan-data price found: {0}'.format(number_dict['plan-data']['price']))
-                except AttributeError:
-                    print_debug(self.debug, 'plan-data price exception')
+                    number_dict['data-usage']['current'] = soup.find('span', attrs={'class':'usage-status-summary-quantity'}).text.strip() + ' ' + soup.find('span', attrs={'class':'usage-status-summary-entity'}).text.strip()
+                except BaseException:
+                    number_dict['data-usage']['current'] = 'unknown'
+                # limit
+                try:
+                    limit = 'unk'
+                    limits = soup.findAll('div', attrs={'class':'usage-status-summary-line'})
+                    for lim in limits:
+                        if 'GB' in lim.text.strip():
+                            limit = lim.find('strong').text.strip()
+                            limit = re.sub(r'\s+', ' ', limit)
+                            break
+                    number_dict['data-usage']['limit'] = limit
+                except BaseException:
+                    number_dict['data-usage']['limit'] = 'unknown'
+                # remaining
+                try:
+                    number_dict['data-usage']['remaining'] = soup.find('h3').text.strip().replace('\n', ' ')
+                except BaseException:
+                    number_dict['data-usage']['remaining'] = 'unknown'
 
-                dlitem = soup.find("dl")
-                keys = dlitem.findAll('dt')
-                values = dlitem.findAll('dd')
+            else:
+                print_debug(self.debug, 'usage-status-summary NOT found')
+                if self.debug:
+                    self.driver.save_screenshot('10-user-status-summary-failed.png')
 
-                cnt = 0
-                for key in keys:
-                    number_dict['plan-data'][key.text.strip()] = values[cnt].text.strip()
-                    print_debug(self.debug, 'plan-data {0} found: {1}'.format(key.text.strip(), values[cnt].text.strip()))
-                    cnt += 1
-
+            # plan data
+            try:
+                link = self.driver.find_element_by_link_text('Tarif und Vertrag')
+                link.click()
+                number_dict['plan-data'] = self.tarif_und_vertrag()
+            except BaseException:
+                try:
+                    link = self.driver.find_element_by_link_text('Tarif & SIM-Karte')
+                    link.click()
+                    number_dict['plan-data'] = self.tarif_und_sim()
+                except BaseException:
+                    print_debug(self.debug, 'panel-tariff-contract NOT found')
+                    if self.debug:
+                        self.driver.save_screenshot('11-panel-tariff-contract-failed.png')
         return number_dict
 
     def login(self):
@@ -362,19 +308,19 @@ class O2mobile(object):
             sys.exit(0)
 
         if self.debug:
-            self.driver.save_screenshot('00-login.png')              
-            
+            self.driver.save_screenshot('00-login.png')
+
         print_debug(self.debug, 'login-site fetched')
         self.auth()
-   
+
         # catch login error
         try:
             error = self.driver.find_element_by_xpath('//div[contains(@class, "alert") and contains(@class, "alert-danger")]').text.strip()
         except NoSuchElementException:
             error = None
         print_debug(self.debug, 'login error handling completed')
-        
-        
+
+
         if error:
             print('Login failed: {0}'.format(error))
             self.close_instance()
@@ -382,121 +328,183 @@ class O2mobile(object):
             return None
         else:
             # catch and confirm optin
-            if wait_for_element(self.driver, self.debug, 'optinAcceptButton', 'id', 15):
+            if wait_for_element(self.driver, self.debug, 'optinAcceptButton', 'id', 5):
                 print_debug(self.debug, 'found optinAcceptButton')
                 btn = self.driver.find_element_by_id("optinAcceptButton")
                 btn.click()
-            else: 
+            else:
                 if self.debug:
-                    self.driver.save_screenshot('05-optin.png')            
+                    self.driver.save_screenshot('05-optin.png')
 
             print_debug(self.debug, 'optinAcceptButton wait done')
 
             # catch cookie-message
-            if wait_for_element(self.driver, self.debug, 'uc-btn-accept-banner', 'id', 15):
+            if wait_for_element(self.driver, self.debug, 'uc-btn-accept-banner', 'id', 5):
                 print_debug(self.debug, 'found uc-btn-accept-banner')
                 btn = self.driver.find_element_by_id("uc-btn-accept-banner")
                 btn.click()
-            else: 
+            else:
                 if self.debug:
-                    self.driver.save_screenshot('06-cookie.png')    
+                    self.driver.save_screenshot('06-cookie.png')
             print_debug(self.debug, 'cookie message wait done')
 
             try:
-                link = self.driver.find_element_by_link_text('Mein Verbrauch')
+                link = self.driver.find_element_by_link_text('Verbrauch')
                 link.click()
-                print_debug(self.debug, 'Mein Verbrauch click')                
+                print_debug(self.debug, 'Verbrauch click')
             except BaseException:
-                print_debug(self.debug, 'Mein Verbrauch failed')  
-                
+                print_debug(self.debug, 'Verbrauch failed')
+
             if self.debug:
                 self.driver.save_screenshot('07-mv.png')
 
-            if wait_for_element(self.driver, self.debug, 'price-single', 'class', 25):
-                print_debug(self.debug, 'price-single found')
-                
+            if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 25):
+                print_debug(self.debug, 'usage-status-summary')
+                if self.debug:
+                    self.driver.save_screenshot('08-user-status-summary-succ.png')
+
                 # get rid of this f**** advertisement pop-ups
-                print_debug(self.debug, 'sleep 5 seconds')
-                time.sleep(5)
                 try:
                     ads = self.driver.find_element_by_xpath('//button[@class="btn"]')
                     ads.click()
                     print_debug(self.debug, 'pressed button to close overlay window')
                 except BaseException:
-                    print_debug(self.debug, 'no add found') 
-                
+                    print_debug(self.debug, 'no add found')
+
                 if self.debug:
-                    self.driver.save_screenshot('08-end-login.png')
+                    self.driver.save_screenshot('09-end-login.png')
                 print_debug(self.debug, 'we will return true now')
                 return True
             else:
-                print_debug(self.debug, 'price-single NOT found')
-                if wait_for_element(self.driver, self.debug, 'items', 'class', 10):
-                    _ele = self.driver.find_element_by_xpath('//div[contains(@class, "items")]').text.strip()
-                    # print(ele)
+                print_debug(self.debug, 'usage-status-summary NOT found')
+                self.driver.save_screenshot('08-user-status-summary-failed.png')
                 self.close_instance()
                 sys.exit(0)
                 return False
 
     def logout(self):
         """ logout method """
-
         print_debug(self.debug, 'looking for logout link')
-        ele = self.driver.find_element_by_xpath('//a[@href="https://login.o2online.de/auth/logout"]')
-        ele.click()
+        link = self.driver.find_element_by_link_text('Mein O2')
+        link.click()
+        #ele = self.driver.find_element_by_xpath('//a[@href="https://login.o2online.de/auth/logout"]')
+        #ele.click()
         print_debug(self.debug, 'looking for logout button')
-        ele = self.driver.find_element_by_xpath("//*[contains(text(), 'Logout')]")
-        ele.click()
+        link = self.driver.find_element_by_link_text('Logout')
+        link.click()
+        # ele = self.driver.find_element_by_xpath("//*[contains(text(), 'Logout')]")
+        # ele.click()
         self.close_instance()
 
     def new_instance(self):
         """ initializes a new selenium web driver instance by using either PhantomJS or Mozilla
-            and returns a reference to the browser object for further processing
-
-            args:
-                debug - debug mode
-
-            returns:
-                None
-        """
+            and returns a reference to the browser object for further processing """
         options = Options()
-        if self.headless:   
+        if self.headless:
             print_debug(self.debug, 'actiating headless mode')
             options.add_argument('-headless')
-        driver = webdriver.Firefox(firefox_options=options)        
+        driver = webdriver.Firefox(firefox_options=options)
         driver.set_window_size(1024, 768)
         driver.set_script_timeout(5)
         return driver
 
+    def tarif_und_sim(self):
+        """ tarif & sim-karte parsing """
+        print_debug(self.debug, 'jump into tarif_und_sim')
+        plandata_dic = {}
+
+        if wait_for_element(self.driver, self.debug, 'tarifinfo', 'class', 25):
+            soup = BeautifulSoup(self.driver.find_element_by_class_name('tarifinfo').get_attribute('innerHTML'), 'lxml')
+
+            plandata_dic['tariff'] = soup.find('h2', attrs={'class':'h2 highlight'},).text.strip()
+            print_debug(self.debug, 'plan-data tariff found: {0}'.format(plandata_dic['tariff']))
+            try:
+                plandata_dic['price'] = soup.find('div', attrs={'class':'price-single'},).text.strip()
+                print_debug(self.debug, 'plan-data price found: {0}'.format(plandata_dic['price']))
+            except AttributeError:
+                print_debug(self.debug, 'plan-data price exception')
+
+            dlitem = soup.find("dl")
+            keys = dlitem.findAll('dt')
+            values = dlitem.findAll('dd')
+
+            cnt = 0
+            for key in keys:
+                plandata_dic[key.text.strip()] = values[cnt].text.strip()
+                print_debug(self.debug, 'plan-data {0} found: {1}'.format(key.text.strip(), values[cnt].text.strip()))
+                cnt += 1
+
+        return plandata_dic
+
+    def tarif_und_vertrag(self):
+        """ tarif und vertrag section parsing """
+        print_debug(self.debug, 'jump into tarif_und_vertrag')
+        plandata_dic = {}
+
+        if wait_for_element(self.driver, self.debug, 'composition', 'class', 25):
+            print_debug(self.debug, 'item-collection')
+            if self.debug:
+                self.driver.save_screenshot('11-item-collection.png')
+
+            try:
+                link = self.driver.find_element_by_link_text('Mehr')
+                link.click()
+                print_debug(self.debug, 'Tarif und Vertrag Mehr click')
+            except BaseException:
+                print_debug(self.debug, 'Tarif und Vertrag Mehr failed')
+
+            soup = BeautifulSoup(self.driver.find_element_by_tag_name('tariff-details').get_attribute('innerHTML'), 'lxml')
+            spans = soup.findAll('span')
+            try:
+                plandata_dic['tariff'] = spans[0].text.strip()
+                print_debug(self.debug, 'plan-data tariff found: {0}'.format(plandata_dic['tariff']))
+            except BaseException:
+                plandata_dic['tariff'] = 'unknown'
+                print_debug(self.debug, 'plan-data tariff exception')
+            try:
+                plandata_dic['price'] = spans[1].text.strip() + ' ' + spans[2].text.strip()
+                print_debug(self.debug, 'plan-data price found: {0}'.format(plandata_dic['price']))
+            except BaseException:
+                plandata_dic['price'] = 'unknown'
+                print_debug(self.debug, 'plan-data price exception')
+
+            items = soup.findAll('div', attrs={'class':'panel-dual-column-list-row bordered-row'})
+            for item in items:
+                values = item.findAll('p')
+                try:
+                    plandata_dic[values[0].text.strip()] = values[1].text.strip()
+                    print_debug(self.debug, 'plan-data {0} found: {1}'.format(values[0].text.strip(), values[1].text.strip()))
+                except BaseException:
+                    pass
+
+        return plandata_dic
+
     def switch_number(self, number):
         """ switch to a different phone number in o2 web portal
-
             args:
                 number - phone number
-
             returns:
                 True - in case the switch was successful
                 False - in case switch failed
-
         """
         print_debug(self.debug, 'switch_number({0})'.format(number))
         ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
-        print_debug(self.debug, 'side-nav-contract-choice-link clicked') 
+        print_debug(self.debug, 'side-nav-contract-choice-link clicked')
         if wait_for_element(self.driver, self.debug, 'side-nav-contract-choice-menu-items', 'class', 25):
-            print_debug(self.debug, 'found side-nav-contract-choice-menu-items')         
+            print_debug(self.debug, 'found side-nav-contract-choice-menu-items')
             try:
                 ele = self.driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
                 ele.click()
-                print_debug(self.debug, 'found list-entry for number: {0}'.format(number))                 
-                if wait_for_element_to_disappear(self.driver, self.debug, 'tariff-attributes', 'class', 25):
-                    print_debug(self.debug, 'found tariff-attributes') 
-                    return wait_for_element(self.driver, self.debug, 'tariff-attributes', 'class', 25)
+                print_debug(self.debug, 'found list-entry for number: {0}'.format(number))
+                if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 25):
+                    print_debug(self.debug, 'found usage-status-summary')
+                    return True
                 else:
-                    print_debug(self.debug, 'did not fiund tariff-attributes')                    
+                    print_debug(self.debug, 'did not find usage-status-summary')
                     return False
             except NoSuchElementException:
-                print_debug(self.debug,'number "{0}" could no tbe found in portal'.format(number))
+                print_debug(self.debug, 'number "{0}" could no tbe found in portal'.format(number))
                 return False
         else:
             return False
