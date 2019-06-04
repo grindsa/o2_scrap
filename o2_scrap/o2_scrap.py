@@ -125,7 +125,7 @@ class O2mobile(object):
         Close the connection at the end of the context
         """
         print_debug(self.debug, 'we are in __exit__')
-        # self.logout()
+        self.logout()
 
     def auth(self):
         """ authenticates towards an o2 portal by using a user password combination
