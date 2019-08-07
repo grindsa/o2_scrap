@@ -96,7 +96,6 @@ def wait_for_element_to_disappear(driver, _debug, ele, etype, timeout):
 
 class O2mobile(object):
     """ class to fetch information from mobile accounts """
-
     base_url = 'https://www.o2online.de'
     user = None
     pwd = None
@@ -111,34 +110,20 @@ class O2mobile(object):
         self.browser = browser.lower()
 
     def __enter__(self):
-        """
-        Makes DKBRobo a Context Manager
-
-        with DKBRobo("user","pwd") as dkb:
-            print (dkb.lastlogin)
-        """
+        """ Makes O2Mobile a Context Manager """
         if not self.driver:
             self.login()
             print_debug(self.debug, 'self.login() done')
         return self
 
     def __exit__(self, *args):
-        """
-        Close the connection at the end of the context
-        """
+        """ Close the connection at the end of the context """
         print_debug(self.debug, 'we are in __exit__')
         self.logout()
 
     def auth(self):
-        """ authenticates towards an o2 portal by using a user password combination
-
-            args:
-                self - self
-
-            returns:
-                None
-        """
-        print_debug(self.debug, 'auth started')
+        """ authenticates towards an o2 portal by using a user password combination """
+        print_debug(self.debug, 'O2mobile.auth()')
         if self.debug:
             self.driver.save_screenshot('01-auth-in.png')
         if wait_for_element(self.driver, self.debug, 'IDToken1', 'id', 15):
@@ -154,10 +139,11 @@ class O2mobile(object):
             except NoSuchElementException:
                 if self.debug:
                     self.driver.save_screenshot('02-auth-exception.png')
-        print_debug(self.debug, 'auth done')
+        print_debug(self.debug, 'O2mobile.auth() done')
 
     def catch_ads(self):
         """ catch ads """
+        print_debug(self.debug, 'O2mobile.catch_ads()')
         try:
             ads = self.driver.find_element_by_xpath('//button[@class="btn"]')
             ads.click()
@@ -167,7 +153,7 @@ class O2mobile(object):
 
     def catch_cookies(self):
         """ catch cookies """
-        print_debug(self.debug, "catch_cookies()")
+        print_debug(self.debug, "O2mobile.catch_cookies()")
         if wait_for_element(self.driver, self.debug, 'uc-btn-accept-banner', 'id', 5):
             print_debug(self.debug, 'found uc-btn-accept-banner')
             btn = self.driver.find_element_by_id("uc-btn-accept-banner")
@@ -177,11 +163,11 @@ class O2mobile(object):
                 self.driver.save_screenshot('06-cookie.png')
             print_debug(self.debug, 'cookie message wait done')
 
-        print_debug(self.debug, 'catch_cookies() ended')
+        print_debug(self.debug, 'O2mobile,catch_cookies() ended')
 
     def catch_optin(self):
         """ catch and accept optin """
-        print_debug(self.debug, "catch_optin()")
+        print_debug(self.debug, "O2mobile.catch_optin()")
         if wait_for_element(self.driver, self.debug, 'optinAcceptButton', 'id', 5):
             print_debug(self.debug, 'found optinAcceptButton')
             btn = self.driver.find_element_by_id("optinAcceptButton")
@@ -189,28 +175,17 @@ class O2mobile(object):
         else:
             if self.debug:
                 self.driver.save_screenshot('05-optin.png')
-        print_debug(self.debug, 'catch_optin() ended')
+        print_debug(self.debug, 'O2mobile.catch_optin() ended')
 
     def close_instance(self):
-        """ closes an existing selenium web driver instance by using either PhantomJS or Mozilla
-
-            args:
-                self - self
-
-            returns:
-                None
-        """
+        """ closes an existing selenium web driver instance """
+        print_debug(self.debug, "O2mobile.catch_optin()")
         self.driver.close()
         return None
 
     def get_bills(self):
-        """ get list of bills per month
-            args:
-                self - self
-
-            returns:
-                bill_list - list of bills
-        """
+        """ get list of bills per month """
+        print_debug(self.debug, "O2mobile.get_bills()")
         link = self.driver.find_element_by_link_text('Rechnung')
         link.click()
         if wait_for_element(self.driver, self.debug, 'panel-action', 'class', 35):
@@ -228,6 +203,7 @@ class O2mobile(object):
 
     def get_data_usage(self):
         """ get usage data """
+        print_debug(self.debug, "O2mobile.get_data_usage()")
         data_dic = {}
         if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 25):
             print_debug(self.debug, 'usage-status-summary')
@@ -265,13 +241,8 @@ class O2mobile(object):
         return data_dic
 
     def get_numbers(self):
-        """ get phone numbers belonging to the contract-choice-link
-            args:
-                self - self
-
-            returns:
-                number_dict - dictionary of phone numbers and plan names
-        """
+        """ get phone numbers belonging to the contract-choice-link """
+        print_debug(self.debug, "O2mobile.get_numbers()")
         ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
 
@@ -291,22 +262,14 @@ class O2mobile(object):
         return number_dict
 
     def get_overview(self, number):
-        """ get data consumption and contract details for a given number
-
-        args:
-            number - number to check
-
-        returns:
-            number_dict - dictionary details
-        """
-        print_debug(self.debug, 'get_overview({0})'.format(number))
+        """ get data consumption and contract details for a given number """
+        print_debug(self.debug, 'O2mobile.get_overview({0})'.format(number))
         wait_for_element(self.driver, self.debug, 'navigation-label', 'class', 25)
         print_debug(self.debug, 'wait for navigation-label done')
         result = self.switch_number(number)
         time.sleep(2)
         number_dict = {}
         if result:
-
             # usage data
             number_dict['data-usage'] = self.get_data_usage()
 
@@ -341,6 +304,7 @@ class O2mobile(object):
                 Upon successfull login a reference to a selenium driver object will be returned.
                 Otherwise the resturn code will be "False" and an error message get printed on STDOUT
         """
+        print_debug(self.debug, "O2mobile.login()")
         self.driver = self.new_instance()
         # open page
         try:
@@ -407,7 +371,7 @@ class O2mobile(object):
 
     def logout(self):
         """ logout method """
-        print_debug(self.debug, 'looking for logout link')
+        print_debug(self.debug, 'O2mobile.logout()')
         link = self.driver.find_element_by_link_text('Mein O2')
         link.click()
         #ele = self.driver.find_element_by_xpath('//a[@href="https://login.o2online.de/auth/logout"]')
@@ -420,8 +384,9 @@ class O2mobile(object):
         self.close_instance()
 
     def new_instance(self):
-        """ initializes a new selenium web driver instance by using either PhantomJS or Mozilla
-            and returns a reference to the browser object for further processing """
+        """ initializes a new selenium web driver instance
+        and returns a reference to the browser object for further processing """
+        print_debug(self.debug, 'O2mobile.new_instance()')
         if self.browser == 'chrome':
             driver = self.new_chrome()
         else:
@@ -458,7 +423,7 @@ class O2mobile(object):
                 True - in case the switch was successful
                 False - in case switch failed
         """
-        print_debug(self.debug, 'switch_number({0})'.format(number))
+        print_debug(self.debug, 'O2mobile.switch_number({0})'.format(number))
         ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
         print_debug(self.debug, 'side-nav-contract-choice-link clicked')
@@ -482,7 +447,7 @@ class O2mobile(object):
 
     def tarif_und_sim(self):
         """ tarif & sim-karte parsing """
-        print_debug(self.debug, 'jump into tarif_und_sim')
+        print_debug(self.debug, 'O2mobile.tarif_und_sim()')
         plandata_dic = {}
 
         if wait_for_element(self.driver, self.debug, 'tarifinfo', 'class', 25):
@@ -510,7 +475,7 @@ class O2mobile(object):
 
     def tarif_und_vertrag(self):
         """ tarif und vertrag section parsing """
-        print_debug(self.debug, 'jump into tarif_und_vertrag')
+        print_debug(self.debug, 'O2mobile.tarif_und_vertrag()')
         plandata_dic = {}
 
         if wait_for_element(self.driver, self.debug, 'composition', 'class', 25):
