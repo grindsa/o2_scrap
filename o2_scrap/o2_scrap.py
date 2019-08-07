@@ -14,7 +14,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 
 if sys.version_info > (3, 0):
     import importlib
@@ -102,11 +103,12 @@ class O2mobile(object):
     driver = None
     debug = False
 
-    def __init__(self, user=None, pwd=None, debug=False, headless=True):
+    def __init__(self, user=None, pwd=None, debug=False, headless=True, browser='firefox'):
         self.user = user
         self.pwd = pwd
         self.debug = debug
         self.headless = headless
+        self.browser = browser.lower()
 
     def __enter__(self):
         """
@@ -420,13 +422,32 @@ class O2mobile(object):
     def new_instance(self):
         """ initializes a new selenium web driver instance by using either PhantomJS or Mozilla
             and returns a reference to the browser object for further processing """
-        options = Options()
-        if self.headless:
-            print_debug(self.debug, 'actiating headless mode')
-            options.add_argument('-headless')
-        driver = webdriver.Firefox(firefox_options=options)
+        if self.browser == 'chrome':
+            driver = self.new_chrome()
+        else:
+            driver = self.new_firefox()
         driver.set_window_size(1024, 768)
         driver.set_script_timeout(5)
+        return driver
+
+    def new_firefox(self):
+        """ creates a new firefox instance """
+        print_debug(self.debug, 'O2mobile.new_firefox()')
+        options = FirefoxOptions()
+        if self.headless:
+            print_debug(self.debug, 'activating headless mode')
+            options.add_argument('-headless')
+        driver = webdriver.Firefox(firefox_options=options)
+        return driver
+
+    def new_chrome(self):
+        """ creates a new chrome instance """
+        print_debug(self.debug, 'O2mobile.new_chrome()')
+        options = ChromeOptions()
+        if self.headless:
+            print_debug(self.debug, 'activating headless mode')
+            options.add_argument('-headless')
+        driver = webdriver.Chrome(chrome_options=options)
         return driver
 
     def switch_number(self, number):
