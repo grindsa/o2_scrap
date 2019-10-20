@@ -85,7 +85,7 @@ The method returns a dictionary in the following format
 {'data-usage': {'autoadjust': u'Datenautomatik deaktiviert',
                 'current': '122 MB',
                 'limit': u'2 GB',
-                'remaining': u'15 Tag(e) verbleibend im Rechnungsmonat'},
+                'estimation': u'2,35 GB'},
  'plan-data': {u'K\xfcndigungsfrist:': u'3 Monat(e) zum Vertragsende',
                u'Verl\xe4ngerbar ab:': u'15.12.2017',
                u'Vertragsbeginn:': u'16.08.2016',
