@@ -205,7 +205,7 @@ class O2mobile(object):
         """ get usage data """
         print_debug(self.debug, "O2mobile.get_data_usage()")
         data_dic = {}
-        if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 25):
+        if wait_for_element(self.driver, self.debug, 'usage-status-summary-amount', 'class', 25):
             print_debug(self.debug, 'usage-status-summary')
             if self.debug:
                 self.driver.save_screenshot('10-user-status-summary-succ.png')
@@ -221,19 +221,26 @@ class O2mobile(object):
                 limit = 'unk'
                 limits = soup.findAll('div', attrs={'class':'usage-status-summary-line'})
                 for lim in limits:
-                    if 'GB' in lim.text.strip():
-                        limit = lim.find('strong').text.strip()
-                        limit = re.sub(r'\s+', ' ', limit)
-                        break
+                    strong = lim.findAll('strong')
+                    for strong_ in strong:
+                        if 'GB' in strong_.text.strip():
+                            limit = re.sub(r'\s+', ' ', strong_.text.strip())
+                            break
                 data_dic['limit'] = limit
             except BaseException:
                 data_dic['limit'] = 'unknown'
-            # remaining
-            try:
-                data_dic['remaining'] = soup.find('h3').text.strip().replace('\n', ' ')
-            except BaseException:
-                data_dic['remaining'] = 'unknown'
 
+            # estimation
+            try:
+                tmp_estimation = soup.find('cms-content', attrs={'cmssnippet':'/snippets/ecare/usage/ng/national-estimated-usage-text'})
+                data_dic['estimation'] = tmp_estimation.find('strong').text.strip()
+            except BaseException:
+                pass
+            # remaining (currently disabled)
+            #try:
+            #    data_dic['remaining'] = soup.find('h3').text.strip().replace('\n', ' ')
+            #except BaseException:
+            data_dic['remaining'] = 'unknown'
         else:
             print_debug(self.debug, 'usage-status-summary NOT found')
             if self.debug:
@@ -412,6 +419,7 @@ class O2mobile(object):
         if self.headless:
             print_debug(self.debug, 'activating headless mode')
             options.add_argument('-headless')
+        options.add_argument('--no-sandbox')
         driver = webdriver.Chrome(chrome_options=options)
         return driver
 
@@ -430,7 +438,10 @@ class O2mobile(object):
         if wait_for_element(self.driver, self.debug, 'side-nav-contract-choice-menu-items', 'class', 25):
             print_debug(self.debug, 'found side-nav-contract-choice-menu-items')
             try:
+                time.sleep(1)
                 ele = self.driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
+                if self.debug:
+                    self.driver.save_screenshot('09-swnum.png')
                 ele.click()
                 print_debug(self.debug, 'found list-entry for number: {0}'.format(number))
                 if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 25):
