@@ -144,12 +144,18 @@ class O2mobile(object):
     def catch_ads(self):
         """ catch ads """
         print_debug(self.debug, 'O2mobile.catch_ads()')
-        try:
-            ads = self.driver.find_element_by_xpath('//button[@class="btn"]')
-            ads.click()
-            print_debug(self.debug, 'pressed button to close overlay window')
-        except BaseException:
-            print_debug(self.debug, 'no add found')
+
+        # (driver, debug, ele, etype, timeout):
+        if wait_for_element(self.driver, self.debug, 'Schließen', 'button', 15):
+            # time.sleep(3)
+            try:
+                ads = self.driver.find_element_by_xpath('//button[@data-tracking-description="cms___Schließen")]')
+                ads.click()
+                print_debug(self.debug, 'pressed button to close overlay window')
+            except BaseException:
+                print_debug(self.debug, 'pressed button to close overlay window')
+        else:
+            print_debug(self.debug, 'found button schließen but could not press it')
 
     def catch_cookies(self):
         """ catch cookies """
@@ -181,7 +187,7 @@ class O2mobile(object):
         """ closes an existing selenium web driver instance """
         print_debug(self.debug, "O2mobile.catch_optin()")
         self.driver.close()
-        return None
+        # return None
 
     def get_bills(self):
         """ get list of bills per month """
@@ -205,28 +211,28 @@ class O2mobile(object):
         """ get usage data """
         print_debug(self.debug, "O2mobile.get_data_usage()")
         data_dic = {}
-        if wait_for_element(self.driver, self.debug, 'usage-status-summary-amount', 'class', 25):
-            print_debug(self.debug, 'usage-status-summary')
+        if wait_for_element(self.driver, self.debug, 'usage', 'class', 15):
+            print_debug(self.debug, 'usage')
             if self.debug:
-                self.driver.save_screenshot('10-user-status-summary-succ.png')
+                self.driver.save_screenshot('10-usage.png')
 
-            soup = BeautifulSoup(self.driver.find_element_by_tag_name('usage-monitor-wrapper').get_attribute('innerHTML'), 'lxml')
+            # soup = BeautifulSoup(self.driver.find_element_by_tag_name('usage-monitor').get_attribute('innerHTML'), 'lxml')
+            soup = BeautifulSoup(self.driver.find_element_by_class_name('usage-monitor').get_attribute('innerHTML'), 'lxml')
+
             # actual data usage
+            usage_info = soup.find('div', attrs={'class':'usage-info'})
+
             try:
-                data_dic['current'] = soup.find('span', attrs={'class':'usage-status-summary-quantity'}).text.strip() + ' ' + soup.find('span', attrs={'class':'usage-status-summary-entity'}).text.strip()
+                usage_value = usage_info.find('div', attrs={'class':'usage-value'}).text.strip()
+                data_dic['current'] = usage_value.replace('\n', ' ')
             except BaseException:
                 data_dic['current'] = 'unknown'
-            # limit
+
             try:
-                limit = 'unk'
-                limits = soup.findAll('div', attrs={'class':'usage-status-summary-line'})
-                for lim in limits:
-                    strong = lim.findAll('strong')
-                    for strong_ in strong:
-                        if 'GB' in strong_.text.strip():
-                            limit = re.sub(r'\s+', ' ', strong_.text.strip())
-                            break
-                data_dic['limit'] = limit
+                tmp_usage_max_value = usage_info.find('div', attrs={'class':'usage-max-value'})
+                usage_max_value = tmp_usage_max_value.find('strong').text.strip()
+                # re.sub(r'\s+', ' ', mystring).strip()
+                data_dic['limit'] = re.sub(r'\s+', ' ', usage_max_value).strip()
             except BaseException:
                 data_dic['limit'] = 'unknown'
 
@@ -236,10 +242,12 @@ class O2mobile(object):
                 data_dic['estimation'] = tmp_estimation.find('strong').text.strip()
             except BaseException:
                 pass
+
             # remaining (currently disabled)
             #try:
             #    data_dic['remaining'] = soup.find('h3').text.strip().replace('\n', ' ')
             #except BaseException:
+
             data_dic['remaining'] = 'unknown'
         else:
             print_debug(self.debug, 'usage-status-summary NOT found')
@@ -271,7 +279,7 @@ class O2mobile(object):
     def get_overview(self, number):
         """ get data consumption and contract details for a given number """
         print_debug(self.debug, 'O2mobile.get_overview({0})'.format(number))
-        wait_for_element(self.driver, self.debug, 'navigation-label', 'class', 25)
+        wait_for_element(self.driver, self.debug, 'navigation-label', 'class', 15)
         print_debug(self.debug, 'wait for navigation-label done')
         result = self.switch_number(number)
         time.sleep(2)
@@ -357,7 +365,7 @@ class O2mobile(object):
             if self.debug:
                 self.driver.save_screenshot('07-mv.png')
 
-            if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 25):
+            if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 15):
                 print_debug(self.debug, 'usage-status-summary')
                 if self.debug:
                     self.driver.save_screenshot('08-user-status-summary-succ.png')
@@ -435,24 +443,28 @@ class O2mobile(object):
         ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
         ele.click()
         print_debug(self.debug, 'side-nav-contract-choice-link clicked')
-        if wait_for_element(self.driver, self.debug, 'side-nav-contract-choice-menu-items', 'class', 25):
+        if wait_for_element(self.driver, self.debug, 'side-nav-contract-choice-menu-items', 'class', 15):
             print_debug(self.debug, 'found side-nav-contract-choice-menu-items')
-            try:
-                time.sleep(1)
-                ele = self.driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
-                if self.debug:
-                    self.driver.save_screenshot('09-swnum.png')
-                ele.click()
-                print_debug(self.debug, 'found list-entry for number: {0}'.format(number))
-                if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 25):
-                    print_debug(self.debug, 'found usage-status-summary')
-                    return True
-                else:
-                    print_debug(self.debug, 'did not find usage-status-summary')
-                    return False
-            except NoSuchElementException:
-                print_debug(self.debug, 'number "{0}" could no tbe found in portal'.format(number))
+            # try:
+            time.sleep(1)
+            ele = self.driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
+            if self.debug:
+                self.driver.save_screenshot('09-swnum.png')
+            ele.click()
+            print_debug(self.debug, 'found list-entry for number: {0}'.format(number))
+
+            # get rid of this f**** advertisement pop-ups
+            self.catch_ads()
+
+            if wait_for_element(self.driver, self.debug, 'usage-info', 'class', 15):
+                print_debug(self.debug, 'found usage-info')
+                return True
+            else:
+                print_debug(self.debug, 'did not find usage-info')
                 return False
+            # except NoSuchElementException:
+            #    print_debug(self.debug, 'number "{0}" could no tbe found in portal'.format(number))
+            #    return False
         else:
             return False
 
@@ -461,7 +473,7 @@ class O2mobile(object):
         print_debug(self.debug, 'O2mobile.tarif_und_sim()')
         plandata_dic = {}
 
-        if wait_for_element(self.driver, self.debug, 'tarifinfo', 'class', 25):
+        if wait_for_element(self.driver, self.debug, 'tarifinfo', 'class', 15):
             soup = BeautifulSoup(self.driver.find_element_by_class_name('tarifinfo').get_attribute('innerHTML'), 'lxml')
 
             plandata_dic['tariff'] = soup.find('h2', attrs={'class':'h2 highlight'},).text.strip()
@@ -489,7 +501,7 @@ class O2mobile(object):
         print_debug(self.debug, 'O2mobile.tarif_und_vertrag()')
         plandata_dic = {}
 
-        if wait_for_element(self.driver, self.debug, 'composition', 'class', 25):
+        if wait_for_element(self.driver, self.debug, 'composition', 'class', 15):
             print_debug(self.debug, 'item-collection')
             if self.debug:
                 self.driver.save_screenshot('11-item-collection.png')
@@ -589,7 +601,7 @@ class O2dsl(object):
         """
         if not self.debug:
             self.driver.close()
-        return None
+        # return None
 
     def get_overview(self):
         """ get data consumption
