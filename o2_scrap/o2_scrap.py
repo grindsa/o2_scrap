@@ -282,11 +282,20 @@ class O2mobile(object):
         wait_for_element(self.driver, self.debug, 'navigation-label', 'class', 15)
         print_debug(self.debug, 'wait for navigation-label done')
         result = self.switch_number(number)
+        print_debug(self.debug, 'sleep 2')
         time.sleep(2)
         number_dict = {}
         if result:
             # usage data
-            number_dict['data-usage'] = self.get_data_usage()
+            try:
+                link = self.driver.find_element_by_link_text('Verbrauch')
+                link.click()
+                number_dict['data-usage'] = self.get_data_usage()
+            except BaseException:
+                print_debug(self.debug, 'Verbrauch NOT found')
+                link = self.driver.find_element_by_link_text('Mein O2 Übersicht')
+                link.click()
+                number_dict['data-usage'] = self.get_data_usage()
 
             # plan data
             try:
@@ -460,8 +469,8 @@ class O2mobile(object):
                 print_debug(self.debug, 'found usage-info')
                 return True
             else:
-                print_debug(self.debug, 'did not find usage-info')
-                return False
+                print_debug(self.debug, 'did not find usage-info  but anyway')
+                return True
             # except NoSuchElementException:
             #    print_debug(self.debug, 'number "{0}" could no tbe found in portal'.format(number))
             #    return False
