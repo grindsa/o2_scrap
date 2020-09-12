@@ -5,14 +5,14 @@ This is a high-level summary of the most important changes. For a full list of c
 
 ## Changes in 0.8
 
-**Bugfixes***:
+**Bugfixes**:
 
 - fixes to reflect changes in o2 portal
 - pylint, code-check and release workflows
 
 ## Changes in 0.7
 
-**Bugfixes***:
+**Bugfixes**:
 
 - update to reflect changes in o2 portal
 - support for Chrome and Firefox
@@ -20,7 +20,7 @@ This is a high-level summary of the most important changes. For a full list of c
 
 ## Changes in 0.5.2
 
-**Bugfixes***:
+**Bugfixes**:
 
 - Adaption to new O2 portal
 
