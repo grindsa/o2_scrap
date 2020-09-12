@@ -51,6 +51,7 @@ jobs:
         id: pypi
         if: steps.o2_scrap_ver.outputs.tag != env.TAG_NAME
         run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi        
           python3 setup.py sdist
 
       - name: "[ UPLOAD ] Publish package"
