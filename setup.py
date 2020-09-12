@@ -1,7 +1,9 @@
 from setuptools import setup
+from glob import glob
+from o2_scrap.version import __version__
 
 setup(name='o2_scrap',
-    version='0.7.2',
+    version=__version__,
     description='library to get data-usage and plan details from O2 germany mobile contracts',
     url='http://github.com/grindsa/o2_scrap',
     author='grindsa',
@@ -13,7 +15,7 @@ setup(name='o2_scrap',
         'bs4',
         'six',
         'lxml'
-    ],    
+    ],
     classifiers = [
         'Programming Language :: Python',
         'Development Status :: 4 - Beta',
@@ -22,5 +24,5 @@ setup(name='o2_scrap',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries :: Python Modules'
-    ],        
+    ],
     zip_safe=False)
