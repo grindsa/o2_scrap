@@ -21,8 +21,8 @@ if sys.version_info > (3, 0):
     import importlib
     importlib.reload(sys)
 else:
-    reload(sys)
-    sys.setdefaultencoding('utf8')
+    reload(sys) # pylint: disable=E0602
+    sys.setdefaultencoding('utf8') # pylint: disable=E1101
 
 def print_debug(debug, text):
     """ little helper to print debug messages """
@@ -351,7 +351,7 @@ class O2mobile(object):
             error = None
         print_debug(self.debug, 'login error handling completed')
 
-        if error:
+        if error: # pylint: disable=R1705
             print('Login failed: {0}'.format(error))
             self.close_instance()
             sys.exit(0)
@@ -374,7 +374,7 @@ class O2mobile(object):
             if self.debug:
                 self.driver.save_screenshot('07-mv.png')
 
-            if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 15):
+            if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 15): # pylint: disable=R1705
                 print_debug(self.debug, 'usage-status-summary')
                 if self.debug:
                     self.driver.save_screenshot('08-user-status-summary-succ.png')
@@ -465,7 +465,7 @@ class O2mobile(object):
             # get rid of this f**** advertisement pop-ups
             self.catch_ads()
 
-            if wait_for_element(self.driver, self.debug, 'usage-info', 'class', 15):
+            if wait_for_element(self.driver, self.debug, 'usage-info', 'class', 15): # pylint: disable=R1705
                 print_debug(self.debug, 'found usage-info')
                 return True
             else:
