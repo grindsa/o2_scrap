@@ -1,4 +1,5 @@
 selenium
+wheel
 bs4
 six
 lxml
