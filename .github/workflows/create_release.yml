@@ -13,7 +13,7 @@ jobs:
 
       - name: "[ PREPARE ] install packages"
         run: |
-          sudo apt-get install -y curl twine python3
+          sudo apt-get install curl twine python3 python3-wheel -y
 
       - name: "[ PREPARE ] Get current version"
         uses: oprypin/find-latest-tag@v1
@@ -51,7 +51,7 @@ jobs:
         id: pypi
         if: steps.o2_scrap_ver.outputs.tag != env.TAG_NAME
         run: |
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi        
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           python3 setup.py sdist
 
       - name: "[ UPLOAD ] Publish package"
