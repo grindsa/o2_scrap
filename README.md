@@ -1,6 +1,12 @@
+<!-- markdownlint-disable  MD013 -->
 # o2_scrap
 
-o2_scrap is a python library to access the web portal of Telefonica O2 Germany to fetch 
+![GitHub release](https://img.shields.io/github/release/grindsa/o2_scrap.svg)
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/grindsa/o2_scrap/master.svg?label=last%20commit%20into%20master)
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/grindsa/o2_scrap/devel.svg?label=last%20commit%20into%20devel)
+
+o2_scrap is a python library to access the web portal of Telefonica O2 Germany to fetch
+
 - mobile data-usage of the phone numbers under a specific contract
 - the mobile plan details
 - the last 6 bills
@@ -13,40 +19,48 @@ These instructions will get you a copy of the project up and running on your loc
 
 To run o2_scrap on your system you need
 
-* [Python] - (https://www.python.org)
-* [Selenium] - (https://pypi.python.org/pypi/selenium) - Selenium Python Bindigs 
-* [geckodriver] - (https://github.com/mozilla/geckodriver) - Proxy for using W3C WebDriver-compatible clients to interact with Gecko-based browsers.
-* [Beautiful Soup]  - (https://www.crummy.com/software/BeautifulSoup/) - a Python library for pulling data out of HTML and XML files.
+- [Python](https://www.python.org)
+- [Selenium](https://pypi.python.org/pypi/selenium) - Selenium Python Bindigs
+- [geckodriver](https://github.com/mozilla/geckodriver) - Proxy for using W3C WebDriver-compatible clients to interact with Gecko-based browsers.
+- [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) - a Python library for pulling data out of HTML and XML files.
 
 Please make sure python and all the above modules had been installed successfully before you start any kind of testing.
 
 ### Installing
 
 #### via Pypi
-```
+
+```bash
 > pip install o2_scrap
 ```
 
 #### manually for all users
+
 1. download the archive and unpack it
 2. enter the directory and run the setup script
-```
+
+```bash
 > python setup.py install
 ```
 
 #### manually for a single user
+
 1. download the archive and unpack it
 2. move the "o2_scrap" subfolder into the directory your script is located
 
 ### Usage
-#### for mobile contracts
-you need to import o2_scrap into your script
-```
-> from o2_scrap import O2mobile
-``` 
 
-create a new o2_scrap context handler and login to web portal portal to 
+#### for mobile contracts
+
+you need to import o2_scrap into your script
+
+```python
+> from o2_scrap import O2mobile
 ```
+
+create a new o2_scrap context handler and login to web portal portal to
+
+```python
 > with O2mobile(USER, PASSWORD, DEBUG, HEADLESS) as O2M:
 ```
 
@@ -55,13 +69,15 @@ create a new o2_scrap context handler and login to web portal portal to
 - DEBUG: True/False - Debug-mode shows more messages and takes screenshots
 - HEADLESS: True/Fals - Turn headless mode on/off (usefull for debugging)
 
-The method get_numbers() can be used to get the list of mobile numbers under the same contract 
-```
+The method get_numbers() can be used to get the list of mobile numbers under the same contract
+
+```python
 > numbers = O2M.get_numbers()
 ```
 
 The method returns a dictionary containing the mobile numbers and tariff name
-```
+
+```python
 > from pprint import pprint
 > pprint(numbers)
 {u'0176-1234567': u'O2 Blue Data S',
@@ -71,14 +87,17 @@ The method returns a dictionary containing the mobile numbers and tariff name
  u'0179-5513345': u'O2 Blue All-in S (2015)'}
 ```
 
-To get the mobile data-usage and further plan details use the get_overview() method 
-```
+To get the mobile data-usage and further plan details use the get_overview() method
+
+```python
 > data_dict = O2M.get_overview(<mobile-number>)
 ```
-* <mobile-number> is the phone number to be queried (format must be as obtained via get_numbers() method)
+
+- mobile-number: phone number to be queried (format must be as obtained via get_numbers() method)
 
 The method returns a dictionary in the following format
-```
+
+```python
 > from pprint import pprint
 > pprint(data_dict)
 
@@ -96,11 +115,14 @@ The method returns a dictionary in the following format
 ```
 
 To get the latest bills the method get_bills() must be used.
-```
+
+```python
 bill_list = O2M.get_bills()
 ```
+
 The method returns a list of bills in the following format
-```
+
+```python
 > from pprint import pprint
 > pprint(bill_list)
 
@@ -121,31 +143,35 @@ The method returns a list of bills in the following format
   'text': u'Rechnung vom 05.09.17'}]
 ```
 
-to close the browser instance and end the session use the close_instance() methods
-```
-> O2M.close_instance(o2b)
+to close the browser instance and end the session use the logout() methods
+
+```python
+> O2M.logout(o2b)
 ```
 
 #### for DSL contracts
 
-create a new context handler and login to web portal portal to 
-```
+create a new context handler and login to web portal portal to
+
+```python
 > with O2dsl(USER, PASSWORD, DEBUG) as O2D:
 ```
 
-  
 DSL usage statistics can be obtained by using the get_overview() method
-```
+
+```python
 > data_usage = O2D.get_overview()
 ```
+
 the method will return a dictionary containing
+
 - the actual data usage
 - the monthly limit
 - the prognosed data usage by end of the period
 - the remaining time till period ends
 - a dictionary with the data consumption of the last 6 months
 
-```
+```python
 > from pprint import pprint
 > pprint(data_usage)
 {'history': [{'from': u'15.08.', 'to': u'15.09.', 'usage': 213},
@@ -162,7 +188,8 @@ the method will return a dictionary containing
  ```
 
 ## Further documentation
-please check the [doc](https://github.com/grindsa/dkb-robo/tree/master/doc) folder of the project. You will find further documenation and an example scripts of all dkb-robo methods there.
+
+Please check the [doc](https://github.com/grindsa/o2_scrap/tree/master/doc) folder of the project. You will find further documentation and an example scripts of all methods there.
 
 ## Contributing
 
@@ -171,7 +198,7 @@ Please note that I have a life besides programming. Thus, expect a delay in answ
 
 ## Versioning
 
-I use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/grindsa/dkb-robo/tags). 
+I use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/grindsa/dkb-robo/tags).
 
 ## License
 
