@@ -53,7 +53,8 @@ def wait_for_element(driver, debug, ele, etype, timeout):
             element_present = EC.element_to_be_clickable((By.NAME, ele))
         elif etype == 'class':
             element_present = EC.element_to_be_clickable((By.CLASS_NAME, ele))
-            # element_present = EC.presence_of_element_located((By.XPATH, '//@class, "%s"]' % (ele)))
+        elif etype == 'classpresent':
+            element_present = EC.presence_of_element_located((By.XPATH, '//*[@class="%s"]' % (ele)))
         else:
             element_present = EC.presence_of_element_located((By.XPATH, '//%s[text()="%s"]' % (etype, ele)))
 
@@ -120,6 +121,16 @@ class O2mobile(object):
         """ Close the connection at the end of the context """
         print_debug(self.debug, 'we are in __exit__')
         self.logout()
+
+    def _catch_modal_content(self):
+        """ catch ads """
+        print_debug(self.debug, 'O2mobile._catch_modal_content()')
+        # close message asking to send ads
+        if wait_for_element(self.driver, self.debug, 'modal-content', 'classpresent', 5):
+            print_debug(self.debug, 'found modal-content')
+            btn = self.driver.find_element_by_xpath('//div[@class="modal-header"]//button[@data-tracking-description="cms___close"]')
+            btn.click()
+        print_debug(self.debug, 'O2mobile._catch_modal_content() ended')
 
     def auth(self):
         """ authenticates towards an o2 portal by using a user password combination """
@@ -341,6 +352,9 @@ class O2mobile(object):
         if self.debug:
             self.driver.save_screenshot('00-login.png')
 
+        # catch cookie-message
+        self.catch_cookies()
+
         print_debug(self.debug, 'login-site fetched')
         self.auth()
 
@@ -361,8 +375,8 @@ class O2mobile(object):
             # catch and confirm optin
             self.catch_optin()
 
-            # catch cookie-message
-            self.catch_cookies()
+            # optout from mailings
+            self._catch_modal_content()
 
             try:
                 link = self.driver.find_element_by_link_text('Verbrauch')
@@ -471,9 +485,6 @@ class O2mobile(object):
             else:
                 print_debug(self.debug, 'did not find usage-info  but anyway')
                 return True
-            # except NoSuchElementException:
-            #    print_debug(self.debug, 'number "{0}" could no tbe found in portal'.format(number))
-            #    return False
         else:
             return False
 
