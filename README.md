@@ -1,6 +1,6 @@
 # o2_scrap
 
-o2_scrap is a python library to access the web portal of Telefonica O2 Germany to fetch 
+o2_scrap is a python library to access the web portal of Telefonica O2 Germany to fetch
 - mobile data-usage of the phone numbers under a specific contract
 - the mobile plan details
 - the last 6 bills
@@ -14,7 +14,7 @@ These instructions will get you a copy of the project up and running on your loc
 To run o2_scrap on your system you need
 
 * [Python] - (https://www.python.org)
-* [Selenium] - (https://pypi.python.org/pypi/selenium) - Selenium Python Bindigs 
+* [Selenium] - (https://pypi.python.org/pypi/selenium) - Selenium Python Bindigs
 * [geckodriver] - (https://github.com/mozilla/geckodriver) - Proxy for using W3C WebDriver-compatible clients to interact with Gecko-based browsers.
 * [Beautiful Soup]  - (https://www.crummy.com/software/BeautifulSoup/) - a Python library for pulling data out of HTML and XML files.
 
@@ -43,9 +43,9 @@ Please make sure python and all the above modules had been installed successfull
 you need to import o2_scrap into your script
 ```
 > from o2_scrap import O2mobile
-``` 
+```
 
-create a new o2_scrap context handler and login to web portal portal to 
+create a new o2_scrap context handler and login to web portal portal to
 ```
 > with O2mobile(USER, PASSWORD, DEBUG, HEADLESS) as O2M:
 ```
@@ -55,7 +55,7 @@ create a new o2_scrap context handler and login to web portal portal to
 - DEBUG: True/False - Debug-mode shows more messages and takes screenshots
 - HEADLESS: True/Fals - Turn headless mode on/off (usefull for debugging)
 
-The method get_numbers() can be used to get the list of mobile numbers under the same contract 
+The method get_numbers() can be used to get the list of mobile numbers under the same contract
 ```
 > numbers = O2M.get_numbers()
 ```
@@ -71,7 +71,7 @@ The method returns a dictionary containing the mobile numbers and tariff name
  u'0179-5513345': u'O2 Blue All-in S (2015)'}
 ```
 
-To get the mobile data-usage and further plan details use the get_overview() method 
+To get the mobile data-usage and further plan details use the get_overview() method
 ```
 > data_dict = O2M.get_overview(<mobile-number>)
 ```
@@ -121,19 +121,19 @@ The method returns a list of bills in the following format
   'text': u'Rechnung vom 05.09.17'}]
 ```
 
-to close the browser instance and end the session use the close_instance() methods
+to close the browser instance and end the session use the logout() methods
 ```
-> O2M.close_instance(o2b)
+> O2M.logout(o2b)
 ```
 
 #### for DSL contracts
 
-create a new context handler and login to web portal portal to 
+create a new context handler and login to web portal portal to
 ```
 > with O2dsl(USER, PASSWORD, DEBUG) as O2D:
 ```
 
-  
+
 DSL usage statistics can be obtained by using the get_overview() method
 ```
 > data_usage = O2D.get_overview()
@@ -171,7 +171,7 @@ Please note that I have a life besides programming. Thus, expect a delay in answ
 
 ## Versioning
 
-I use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/grindsa/dkb-robo/tags). 
+I use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/grindsa/dkb-robo/tags).
 
 ## License
 

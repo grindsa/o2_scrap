@@ -113,8 +113,8 @@ class O2mobile(object):
     def __enter__(self):
         """ Makes O2Mobile a Context Manager """
         if not self.driver:
-            self.login()
-            print_debug(self.debug, 'self.login() done')
+            self._login()
+            print_debug(self.debug, 'self._login() done')
         return self
 
     def __exit__(self, *args):
@@ -122,19 +122,9 @@ class O2mobile(object):
         print_debug(self.debug, 'we are in __exit__')
         self.logout()
 
-    def _catch_modal_content(self):
-        """ catch ads """
-        print_debug(self.debug, 'O2mobile._catch_modal_content()')
-        # close message asking to send ads
-        if wait_for_element(self.driver, self.debug, 'modal-content', 'classpresent', 5):
-            print_debug(self.debug, 'found modal-content')
-            btn = self.driver.find_element_by_xpath('//div[@class="modal-header"]//button[@data-tracking-description="cms___close"]')
-            btn.click()
-        print_debug(self.debug, 'O2mobile._catch_modal_content() ended')
-
-    def auth(self):
+    def _auth(self):
         """ authenticates towards an o2 portal by using a user password combination """
-        print_debug(self.debug, 'O2mobile.auth()')
+        print_debug(self.debug, 'O2mobile._auth()')
         if self.debug:
             self.driver.save_screenshot('01-auth-in.png')
         if wait_for_element(self.driver, self.debug, 'IDToken1', 'id', 15):
@@ -150,11 +140,21 @@ class O2mobile(object):
             except NoSuchElementException:
                 if self.debug:
                     self.driver.save_screenshot('02-auth-exception.png')
-        print_debug(self.debug, 'O2mobile.auth() done')
+        print_debug(self.debug, 'O2mobile._auth() done')
 
-    def catch_ads(self):
+    def _catch_modal_content(self):
         """ catch ads """
-        print_debug(self.debug, 'O2mobile.catch_ads()')
+        print_debug(self.debug, 'O2mobile._catch_modal_content()')
+        # close message asking to send ads
+        if wait_for_element(self.driver, self.debug, 'modal-content', 'classpresent', 5):
+            print_debug(self.debug, 'found modal-content')
+            btn = self.driver.find_element_by_xpath('//div[@class="modal-header"]//button[@data-tracking-description="cms___close"]')
+            btn.click()
+        print_debug(self.debug, 'O2mobile._catch_modal_content() ended')
+
+    def _catch_ads(self):
+        """ catch ads """
+        print_debug(self.debug, 'O2mobile._catch_ads()')
 
         # (driver, debug, ele, etype, timeout):
         if wait_for_element(self.driver, self.debug, 'Schließen', 'button', 15):
@@ -168,9 +168,9 @@ class O2mobile(object):
         else:
             print_debug(self.debug, 'found button schließen but could not press it')
 
-    def catch_cookies(self):
+    def _catch_cookies(self):
         """ catch cookies """
-        print_debug(self.debug, "O2mobile.catch_cookies()")
+        print_debug(self.debug, "O2mobile._catch_cookies()")
         if wait_for_element(self.driver, self.debug, 'uc-btn-accept-banner', 'id', 5):
             print_debug(self.debug, 'found uc-btn-accept-banner')
             btn = self.driver.find_element_by_id("uc-btn-accept-banner")
@@ -180,11 +180,11 @@ class O2mobile(object):
                 self.driver.save_screenshot('06-cookie.png')
             print_debug(self.debug, 'cookie message wait done')
 
-        print_debug(self.debug, 'O2mobile,catch_cookies() ended')
+        print_debug(self.debug, 'O2mobile,_catch_cookies() ended')
 
-    def catch_optin(self):
+    def _catch_optin(self):
         """ catch and accept optin """
-        print_debug(self.debug, "O2mobile.catch_optin()")
+        print_debug(self.debug, "O2mobile._catch_optin()")
         if wait_for_element(self.driver, self.debug, 'optinAcceptButton', 'id', 5):
             print_debug(self.debug, 'found optinAcceptButton')
             btn = self.driver.find_element_by_id("optinAcceptButton")
@@ -192,13 +192,234 @@ class O2mobile(object):
         else:
             if self.debug:
                 self.driver.save_screenshot('05-optin.png')
-        print_debug(self.debug, 'O2mobile.catch_optin() ended')
+        print_debug(self.debug, 'O2mobile._catch_optin() ended')
 
-    def close_instance(self):
+    def _close_instance(self):
         """ closes an existing selenium web driver instance """
-        print_debug(self.debug, "O2mobile.catch_optin()")
+        print_debug(self.debug, "O2mobile._close_instance()")
         self.driver.close()
         # return None
+
+    def _login(self):
+        """ used to login towards an o2-online portal calling the following methods:
+                1. new - to start a new instance
+                2. get - to openan http connection
+                3. auth - to authenticates by using username and password
+
+            args:
+                user      - username
+                password  - password
+                debug     - show browser window (require gecko-engine)
+
+            returns:
+                Upon successfull login a reference to a selenium driver object will be returned.
+                Otherwise the resturn code will be "False" and an error message get printed on STDOUT
+        """
+        print_debug(self.debug, "O2mobile._login()")
+        self.driver = self._new_instance()
+        # open page
+        try:
+            # self.driver.get('https://login.o2online.de/auth/login?goto=https%3A%2F%2Fwww.o2online.de%2Fmein-o2%2F')
+            self.driver.get('https://login.o2online.de/auth/login')
+        except TimeoutException:
+            print('timeout connecting to {0}'.format('https://login.o2online.de/auth/login'))
+            sys.exit(0)
+
+        if self.debug:
+            self.driver.save_screenshot('00-login.png')
+
+        # catch cookie-message
+        self._catch_cookies()
+
+        print_debug(self.debug, 'login-site fetched')
+        self._auth()
+
+        # catch login error
+        try:
+            error = self.driver.find_element_by_xpath('//div[contains(@class, "alert") and contains(@class, "alert-danger")]').text.strip()
+        except NoSuchElementException:
+            error = None
+        print_debug(self.debug, 'login error handling completed')
+
+        if error: # pylint: disable=R1705
+            print('Login failed: {0}'.format(error))
+            self._close_instance()
+            sys.exit(0)
+            return None
+        else:
+
+            # catch and confirm optin
+            self._catch_optin()
+
+            # optout from mailings
+            self._catch_modal_content()
+
+            try:
+                link = self.driver.find_element_by_link_text('Verbrauch')
+                link.click()
+                print_debug(self.debug, 'Verbrauch click')
+            except BaseException:
+                print_debug(self.debug, 'Verbrauch failed')
+
+            if self.debug:
+                self.driver.save_screenshot('07-mv.png')
+
+            if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 15): # pylint: disable=R1705
+                print_debug(self.debug, 'usage-status-summary')
+                if self.debug:
+                    self.driver.save_screenshot('08-user-status-summary-succ.png')
+
+                # get rid of this f**** advertisement pop-ups
+                self._catch_ads()
+
+                if self.debug:
+                    self.driver.save_screenshot('09-end-login.png')
+                print_debug(self.debug, 'we will return true now')
+                return True
+            else:
+                print_debug(self.debug, 'usage-status-summary NOT found')
+                self.driver.save_screenshot('08-user-status-summary-failed.png')
+                self._close_instance()
+                sys.exit(0)
+                return False
+
+    def _new_instance(self):
+        """ initializes a new selenium web driver instance
+        and returns a reference to the browser object for further processing """
+        print_debug(self.debug, 'O2mobile._new_instance()')
+        if self.browser == 'chrome':
+            driver = self._new_chrome()
+        else:
+            driver = self._new_firefox()
+        driver.set_window_size(1024, 768)
+        driver.set_script_timeout(5)
+        return driver
+
+    def _new_firefox(self):
+        """ creates a new firefox instance """
+        print_debug(self.debug, 'O2mobile._new_firefox()')
+        options = FirefoxOptions()
+        if self.headless:
+            print_debug(self.debug, 'activating headless mode')
+            options.add_argument('-headless')
+        driver = webdriver.Firefox(firefox_options=options)
+        return driver
+
+    def _new_chrome(self):
+        """ creates a new chrome instance """
+        print_debug(self.debug, 'O2mobile._new_chrome()')
+        options = ChromeOptions()
+        if self.headless:
+            print_debug(self.debug, 'activating headless mode')
+            options.add_argument('-headless')
+        options.add_argument('--no-sandbox')
+        driver = webdriver.Chrome(chrome_options=options)
+        return driver
+
+    def _switch_number(self, number):
+        """ switch to a different phone number in o2 web portal
+            args:
+                number - phone number
+            returns:
+                True - in case the switch was successful
+                False - in case switch failed
+        """
+        print_debug(self.debug, 'O2mobile._switch_number({0})'.format(number))
+        ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
+        ele.click()
+        print_debug(self.debug, 'side-nav-contract-choice-link clicked')
+        if wait_for_element(self.driver, self.debug, 'side-nav-contract-choice-menu-items', 'class', 15):
+            print_debug(self.debug, 'found side-nav-contract-choice-menu-items')
+            # try:
+            time.sleep(1)
+            ele = self.driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
+            if self.debug:
+                self.driver.save_screenshot('09-swnum.png')
+            ele.click()
+            print_debug(self.debug, 'found list-entry for number: {0}'.format(number))
+
+            # get rid of this f**** advertisement pop-ups
+            self._catch_ads()
+
+            if wait_for_element(self.driver, self.debug, 'usage-info', 'class', 15): # pylint: disable=R1705
+                print_debug(self.debug, 'found usage-info')
+                return True
+            else:
+                print_debug(self.debug, 'did not find usage-info  but anyway')
+                return True
+        else:
+            return False
+
+    def _tarif_und_sim(self):
+        """ tarif & sim-karte parsing """
+        print_debug(self.debug, 'O2mobile._tarif_und_sim()')
+        plandata_dic = {}
+
+        if wait_for_element(self.driver, self.debug, 'tarifinfo', 'class', 15):
+            soup = BeautifulSoup(self.driver.find_element_by_class_name('tarifinfo').get_attribute('innerHTML'), 'lxml')
+
+            plandata_dic['tariff'] = soup.find('h2', attrs={'class':'h2 highlight'},).text.strip()
+            print_debug(self.debug, 'plan-data tariff found: {0}'.format(plandata_dic['tariff']))
+            try:
+                plandata_dic['price'] = soup.find('div', attrs={'class':'price-single'},).text.strip()
+                print_debug(self.debug, 'plan-data price found: {0}'.format(plandata_dic['price']))
+            except AttributeError:
+                print_debug(self.debug, 'plan-data price exception')
+
+            dlitem = soup.find("dl")
+            keys = dlitem.findAll('dt')
+            values = dlitem.findAll('dd')
+
+            cnt = 0
+            for key in keys:
+                plandata_dic[key.text.strip()] = values[cnt].text.strip()
+                print_debug(self.debug, 'plan-data {0} found: {1}'.format(key.text.strip(), values[cnt].text.strip()))
+                cnt += 1
+
+        return plandata_dic
+
+    def _tarif_und_vertrag(self):
+        """ tarif und vertrag section parsing """
+        print_debug(self.debug, 'O2mobile._tarif_und_vertrag()')
+        plandata_dic = {}
+
+        if wait_for_element(self.driver, self.debug, 'composition', 'class', 15):
+            print_debug(self.debug, 'item-collection')
+            if self.debug:
+                self.driver.save_screenshot('11-item-collection.png')
+
+            try:
+                link = self.driver.find_element_by_link_text('Mehr')
+                link.click()
+                print_debug(self.debug, 'Tarif und Vertrag Mehr click')
+            except BaseException:
+                print_debug(self.debug, 'Tarif und Vertrag Mehr failed')
+
+            soup = BeautifulSoup(self.driver.find_element_by_tag_name('tariff-details').get_attribute('innerHTML'), 'lxml')
+            spans = soup.findAll('span')
+            try:
+                plandata_dic['tariff'] = spans[0].text.strip()
+                print_debug(self.debug, 'plan-data tariff found: {0}'.format(plandata_dic['tariff']))
+            except BaseException:
+                plandata_dic['tariff'] = 'unknown'
+                print_debug(self.debug, 'plan-data tariff exception')
+            try:
+                plandata_dic['price'] = spans[1].text.strip() + ' ' + spans[2].text.strip()
+                print_debug(self.debug, 'plan-data price found: {0}'.format(plandata_dic['price']))
+            except BaseException:
+                plandata_dic['price'] = 'unknown'
+                print_debug(self.debug, 'plan-data price exception')
+
+            items = soup.findAll('div', attrs={'class':'panel-dual-column-list-row bordered-row'})
+            for item in items:
+                values = item.findAll('p')
+                try:
+                    plandata_dic[values[0].text.strip()] = values[1].text.strip()
+                    print_debug(self.debug, 'plan-data {0} found: {1}'.format(values[0].text.strip(), values[1].text.strip()))
+                except BaseException:
+                    pass
+
+        return plandata_dic
 
     def get_bills(self):
         """ get list of bills per month """
@@ -254,11 +475,6 @@ class O2mobile(object):
             except BaseException:
                 pass
 
-            # remaining (currently disabled)
-            #try:
-            #    data_dic['remaining'] = soup.find('h3').text.strip().replace('\n', ' ')
-            #except BaseException:
-
             data_dic['remaining'] = 'unknown'
         else:
             print_debug(self.debug, 'usage-status-summary NOT found')
@@ -292,7 +508,7 @@ class O2mobile(object):
         print_debug(self.debug, 'O2mobile.get_overview({0})'.format(number))
         wait_for_element(self.driver, self.debug, 'navigation-label', 'class', 15)
         print_debug(self.debug, 'wait for navigation-label done')
-        result = self.switch_number(number)
+        result = self._switch_number(number)
         print_debug(self.debug, 'sleep 2')
         time.sleep(2)
         number_dict = {}
@@ -312,100 +528,17 @@ class O2mobile(object):
             try:
                 link = self.driver.find_element_by_link_text('Tarif und Vertrag')
                 link.click()
-                number_dict['plan-data'] = self.tarif_und_vertrag()
+                number_dict['plan-data'] = self._tarif_und_vertrag()
             except BaseException:
                 try:
                     link = self.driver.find_element_by_link_text('Tarif & SIM-Karte')
                     link.click()
-                    number_dict['plan-data'] = self.tarif_und_sim()
+                    number_dict['plan-data'] = self._tarif_und_sim()
                 except BaseException:
                     print_debug(self.debug, 'panel-tariff-contract NOT found')
                     if self.debug:
                         self.driver.save_screenshot('11-panel-tariff-contract-failed.png')
         return number_dict
-
-    def login(self):
-        """ used to login towards an o2-online portal calling the following methods:
-                1. new - to start a new instance
-                2. get - to openan http connection
-                3. auth - to authenticates by using username and password
-
-            args:
-                user      - username
-                password  - password
-                debug     - show browser window (require gecko-engine)
-
-            returns:
-                Upon successfull login a reference to a selenium driver object will be returned.
-                Otherwise the resturn code will be "False" and an error message get printed on STDOUT
-        """
-        print_debug(self.debug, "O2mobile.login()")
-        self.driver = self.new_instance()
-        # open page
-        try:
-            # self.driver.get('https://login.o2online.de/auth/login?goto=https%3A%2F%2Fwww.o2online.de%2Fmein-o2%2F')
-            self.driver.get('https://login.o2online.de/auth/login')
-        except TimeoutException:
-            print('timeout connecting to {0}'.format('https://login.o2online.de/auth/login'))
-            sys.exit(0)
-
-        if self.debug:
-            self.driver.save_screenshot('00-login.png')
-
-        # catch cookie-message
-        self.catch_cookies()
-
-        print_debug(self.debug, 'login-site fetched')
-        self.auth()
-
-        # catch login error
-        try:
-            error = self.driver.find_element_by_xpath('//div[contains(@class, "alert") and contains(@class, "alert-danger")]').text.strip()
-        except NoSuchElementException:
-            error = None
-        print_debug(self.debug, 'login error handling completed')
-
-        if error: # pylint: disable=R1705
-            print('Login failed: {0}'.format(error))
-            self.close_instance()
-            sys.exit(0)
-            return None
-        else:
-
-            # catch and confirm optin
-            self.catch_optin()
-
-            # optout from mailings
-            self._catch_modal_content()
-
-            try:
-                link = self.driver.find_element_by_link_text('Verbrauch')
-                link.click()
-                print_debug(self.debug, 'Verbrauch click')
-            except BaseException:
-                print_debug(self.debug, 'Verbrauch failed')
-
-            if self.debug:
-                self.driver.save_screenshot('07-mv.png')
-
-            if wait_for_element(self.driver, self.debug, 'usage-status-summary', 'class', 15): # pylint: disable=R1705
-                print_debug(self.debug, 'usage-status-summary')
-                if self.debug:
-                    self.driver.save_screenshot('08-user-status-summary-succ.png')
-
-                # get rid of this f**** advertisement pop-ups
-                self.catch_ads()
-
-                if self.debug:
-                    self.driver.save_screenshot('09-end-login.png')
-                print_debug(self.debug, 'we will return true now')
-                return True
-            else:
-                print_debug(self.debug, 'usage-status-summary NOT found')
-                self.driver.save_screenshot('08-user-status-summary-failed.png')
-                self.close_instance()
-                sys.exit(0)
-                return False
 
     def logout(self):
         """ logout method """
@@ -417,147 +550,7 @@ class O2mobile(object):
         print_debug(self.debug, 'looking for logout button')
         link = self.driver.find_element_by_link_text('Logout')
         link.click()
-        # ele = self.driver.find_element_by_xpath("//*[contains(text(), 'Logout')]")
-        # ele.click()
-        self.close_instance()
-
-    def new_instance(self):
-        """ initializes a new selenium web driver instance
-        and returns a reference to the browser object for further processing """
-        print_debug(self.debug, 'O2mobile.new_instance()')
-        if self.browser == 'chrome':
-            driver = self.new_chrome()
-        else:
-            driver = self.new_firefox()
-        driver.set_window_size(1024, 768)
-        driver.set_script_timeout(5)
-        return driver
-
-    def new_firefox(self):
-        """ creates a new firefox instance """
-        print_debug(self.debug, 'O2mobile.new_firefox()')
-        options = FirefoxOptions()
-        if self.headless:
-            print_debug(self.debug, 'activating headless mode')
-            options.add_argument('-headless')
-        driver = webdriver.Firefox(firefox_options=options)
-        return driver
-
-    def new_chrome(self):
-        """ creates a new chrome instance """
-        print_debug(self.debug, 'O2mobile.new_chrome()')
-        options = ChromeOptions()
-        if self.headless:
-            print_debug(self.debug, 'activating headless mode')
-            options.add_argument('-headless')
-        options.add_argument('--no-sandbox')
-        driver = webdriver.Chrome(chrome_options=options)
-        return driver
-
-    def switch_number(self, number):
-        """ switch to a different phone number in o2 web portal
-            args:
-                number - phone number
-            returns:
-                True - in case the switch was successful
-                False - in case switch failed
-        """
-        print_debug(self.debug, 'O2mobile.switch_number({0})'.format(number))
-        ele = self.driver.find_element_by_class_name('side-nav-contract-choice-link')
-        ele.click()
-        print_debug(self.debug, 'side-nav-contract-choice-link clicked')
-        if wait_for_element(self.driver, self.debug, 'side-nav-contract-choice-menu-items', 'class', 15):
-            print_debug(self.debug, 'found side-nav-contract-choice-menu-items')
-            # try:
-            time.sleep(1)
-            ele = self.driver.find_element_by_xpath("//span[contains(text(), '%s')]" % number)
-            if self.debug:
-                self.driver.save_screenshot('09-swnum.png')
-            ele.click()
-            print_debug(self.debug, 'found list-entry for number: {0}'.format(number))
-
-            # get rid of this f**** advertisement pop-ups
-            self.catch_ads()
-
-            if wait_for_element(self.driver, self.debug, 'usage-info', 'class', 15): # pylint: disable=R1705
-                print_debug(self.debug, 'found usage-info')
-                return True
-            else:
-                print_debug(self.debug, 'did not find usage-info  but anyway')
-                return True
-        else:
-            return False
-
-    def tarif_und_sim(self):
-        """ tarif & sim-karte parsing """
-        print_debug(self.debug, 'O2mobile.tarif_und_sim()')
-        plandata_dic = {}
-
-        if wait_for_element(self.driver, self.debug, 'tarifinfo', 'class', 15):
-            soup = BeautifulSoup(self.driver.find_element_by_class_name('tarifinfo').get_attribute('innerHTML'), 'lxml')
-
-            plandata_dic['tariff'] = soup.find('h2', attrs={'class':'h2 highlight'},).text.strip()
-            print_debug(self.debug, 'plan-data tariff found: {0}'.format(plandata_dic['tariff']))
-            try:
-                plandata_dic['price'] = soup.find('div', attrs={'class':'price-single'},).text.strip()
-                print_debug(self.debug, 'plan-data price found: {0}'.format(plandata_dic['price']))
-            except AttributeError:
-                print_debug(self.debug, 'plan-data price exception')
-
-            dlitem = soup.find("dl")
-            keys = dlitem.findAll('dt')
-            values = dlitem.findAll('dd')
-
-            cnt = 0
-            for key in keys:
-                plandata_dic[key.text.strip()] = values[cnt].text.strip()
-                print_debug(self.debug, 'plan-data {0} found: {1}'.format(key.text.strip(), values[cnt].text.strip()))
-                cnt += 1
-
-        return plandata_dic
-
-    def tarif_und_vertrag(self):
-        """ tarif und vertrag section parsing """
-        print_debug(self.debug, 'O2mobile.tarif_und_vertrag()')
-        plandata_dic = {}
-
-        if wait_for_element(self.driver, self.debug, 'composition', 'class', 15):
-            print_debug(self.debug, 'item-collection')
-            if self.debug:
-                self.driver.save_screenshot('11-item-collection.png')
-
-            try:
-                link = self.driver.find_element_by_link_text('Mehr')
-                link.click()
-                print_debug(self.debug, 'Tarif und Vertrag Mehr click')
-            except BaseException:
-                print_debug(self.debug, 'Tarif und Vertrag Mehr failed')
-
-            soup = BeautifulSoup(self.driver.find_element_by_tag_name('tariff-details').get_attribute('innerHTML'), 'lxml')
-            spans = soup.findAll('span')
-            try:
-                plandata_dic['tariff'] = spans[0].text.strip()
-                print_debug(self.debug, 'plan-data tariff found: {0}'.format(plandata_dic['tariff']))
-            except BaseException:
-                plandata_dic['tariff'] = 'unknown'
-                print_debug(self.debug, 'plan-data tariff exception')
-            try:
-                plandata_dic['price'] = spans[1].text.strip() + ' ' + spans[2].text.strip()
-                print_debug(self.debug, 'plan-data price found: {0}'.format(plandata_dic['price']))
-            except BaseException:
-                plandata_dic['price'] = 'unknown'
-                print_debug(self.debug, 'plan-data price exception')
-
-            items = soup.findAll('div', attrs={'class':'panel-dual-column-list-row bordered-row'})
-            for item in items:
-                values = item.findAll('p')
-                try:
-                    plandata_dic[values[0].text.strip()] = values[1].text.strip()
-                    print_debug(self.debug, 'plan-data {0} found: {1}'.format(values[0].text.strip(), values[1].text.strip()))
-                except BaseException:
-                    pass
-
-        return plandata_dic
+        self._close_instance()
 
 class O2dsl(object):
     """ class to fetch information from dsl accounts """
@@ -575,13 +568,10 @@ class O2dsl(object):
 
     def __enter__(self):
         """
-        Makes DKBRobo a Context Manager
-
-        with DKBRobo("user","pwd") as dkb:
-            print (dkb.lastlogin)
+        Makes O2dsl a Context Manager
         """
         if not self.driver:
-            self.login()
+            self._login()
         return self
 
     def __exit__(self, *args):
@@ -590,7 +580,7 @@ class O2dsl(object):
         """
         self.logout()
 
-    def auth(self):
+    def _auth(self):
         """ authenticates towards an o2 portal by using a user password combination
 
             args:
@@ -610,7 +600,7 @@ class O2dsl(object):
             except NoSuchElementException:
                 pass
 
-    def close_instance(self):
+    def _close_instance(self):
         """ closes an existing selenium web driver instance by using either PhantomJS or Mozilla
 
             args:
@@ -669,7 +659,7 @@ class O2dsl(object):
 
         return data_dic
 
-    def login(self):
+    def _login(self):
         """ used to login towards an o2-online portal calling the following methods:
 
             args:
@@ -679,7 +669,7 @@ class O2dsl(object):
                 Upon successfull login a reference to a selenium driver object will be returned.
                 Otherwise the resturn code will be "False" and an error message get printed on STDOUT
         """
-        self.driver = self.new_instance()
+        self.driver = self._new_instance()
         # open page
         try:
             self.driver.get(self.base_url + 'sso/login')
@@ -687,7 +677,7 @@ class O2dsl(object):
             print('error connecting to {0}'.format(self.base_url + 'sso/login'))
             sys.exit(0)
 
-        self.auth()
+        self._auth()
 
         # catch login error
         try:
@@ -708,10 +698,10 @@ class O2dsl(object):
         """
         btn = self.driver.find_element_by_class_name('logoutUser')
         btn.click()
-        self.close_instance()
+        self._close_instance()
 
 
-    def new_instance(self):
+    def _new_instance(self):
         """ initializes a new selenium web driver instance by using either PhantomJS or Mozilla
             and returns a reference to the browser object for further processing
 
