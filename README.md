@@ -1,3 +1,4 @@
+<!-- markdownlint-disable  MD013 -->
 # o2_scrap
 
 o2_scrap is a python library to access the web portal of Telefonica O2 Germany to fetch
@@ -23,29 +24,36 @@ Please make sure python and all the above modules had been installed successfull
 ### Installing
 
 #### via Pypi
+
 ```
 > pip install o2_scrap
 ```
 
 #### manually for all users
+
 1. download the archive and unpack it
 2. enter the directory and run the setup script
+
 ```
 > python setup.py install
 ```
 
 #### manually for a single user
+
 1. download the archive and unpack it
 2. move the "o2_scrap" subfolder into the directory your script is located
 
 ### Usage
 #### for mobile contracts
+
 you need to import o2_scrap into your script
+
 ```
 > from o2_scrap import O2mobile
 ```
 
 create a new o2_scrap context handler and login to web portal portal to
+
 ```
 > with O2mobile(USER, PASSWORD, DEBUG, HEADLESS) as O2M:
 ```
@@ -56,11 +64,13 @@ create a new o2_scrap context handler and login to web portal portal to
 - HEADLESS: True/Fals - Turn headless mode on/off (usefull for debugging)
 
 The method get_numbers() can be used to get the list of mobile numbers under the same contract
+
 ```
 > numbers = O2M.get_numbers()
 ```
 
 The method returns a dictionary containing the mobile numbers and tariff name
+
 ```
 > from pprint import pprint
 > pprint(numbers)
@@ -72,12 +82,15 @@ The method returns a dictionary containing the mobile numbers and tariff name
 ```
 
 To get the mobile data-usage and further plan details use the get_overview() method
+
 ```
 > data_dict = O2M.get_overview(<mobile-number>)
 ```
+
 * <mobile-number> is the phone number to be queried (format must be as obtained via get_numbers() method)
 
 The method returns a dictionary in the following format
+
 ```
 > from pprint import pprint
 > pprint(data_dict)
@@ -96,10 +109,12 @@ The method returns a dictionary in the following format
 ```
 
 To get the latest bills the method get_bills() must be used.
+
 ```
 bill_list = O2M.get_bills()
 ```
 The method returns a list of bills in the following format
+
 ```
 > from pprint import pprint
 > pprint(bill_list)
@@ -122,6 +137,7 @@ The method returns a list of bills in the following format
 ```
 
 to close the browser instance and end the session use the logout() methods
+
 ```
 > O2M.logout(o2b)
 ```
@@ -129,15 +145,17 @@ to close the browser instance and end the session use the logout() methods
 #### for DSL contracts
 
 create a new context handler and login to web portal portal to
+
 ```
 > with O2dsl(USER, PASSWORD, DEBUG) as O2D:
 ```
 
-
 DSL usage statistics can be obtained by using the get_overview() method
+
 ```
 > data_usage = O2D.get_overview()
 ```
+
 the method will return a dictionary containing
 - the actual data usage
 - the monthly limit
@@ -162,7 +180,8 @@ the method will return a dictionary containing
  ```
 
 ## Further documentation
-please check the [doc](https://github.com/grindsa/dkb-robo/tree/master/doc) folder of the project. You will find further documenation and an example scripts of all dkb-robo methods there.
+
+Please check the [doc](https://github.com/grindsa/o2_scrap/tree/master/doc) folder of the project. You will find further documentation and an example scripts of all methods there.
 
 ## Contributing
 

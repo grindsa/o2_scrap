@@ -1,4 +1,4 @@
-# workflow to run the dkb-robo unittest suite
+# workflow to run the o2scrap unittest suite
 
 name: Python Tests
 
@@ -29,4 +29,4 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: "Pylint folder: o2scrap"
         run: |
-          pylint --rcfile=".github/pylintrc" dkb_robo/ || pylint-exit $?
+          pylint --rcfile=".github/pylintrc" o2_scrap/ || pylint-exit $?
